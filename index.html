@@ -33,10 +33,12 @@
     <div class="mobile-menu" aria-hidden="true" inert><a href="#about">О проекте</a><a href="#audience">Для кого</a><a href="#stay">Проживание</a><a href="#programs">Программы</a><a href="#contacts">Контакты</a></div>
     <div class="hero-art shell">
       <img class="hero-wordmark" src="./public/assets/logo-mark.svg" alt="Михайловское">
+      <img class="hero-wordmark-restored" src="./public/assets/logo-mark-solid.svg" alt="" aria-hidden="true">
       <div class="restoration" data-restoration>
         <img class="hero-building restoration-before" src="./public/assets/manor-ruined-line-art.png" alt="Разрушенная усадьба Михайловское, рисунок пером" width="2172" height="724" fetchpriority="high" decoding="async">
         <canvas class="restoration-paint" width="2172" height="724" aria-hidden="true"></canvas>
         <img class="hero-building restoration-after" src="./public/assets/manor-restored-color-v2.png" alt="Отреставрированная усадьба Михайловское" width="2172" height="724" decoding="async">
+        <img class="hero-building restoration-light" src="./public/assets/manor-restored-color-v2.png" alt="" aria-hidden="true" decoding="async">
         <div class="restoration-cursor" aria-hidden="true"></div>
       </div>
     </div>
@@ -111,6 +113,12 @@
 
     <section class="contacts section" id="contacts"><div class="shell"><div class="section-heading"><h2>Планируйте приезд</h2><p>Подготовьте заявку,<br>чтобы обсудить детали визита.</p></div><div class="contacts-grid"><div><p class="address">Троицк, Новая Москва<br>Историческая усадьба «Михайловское»</p><p>Точный адрес, точка въезда и рабочие контакты команды будут опубликованы после подтверждения.</p><hr><h3>Перед заявкой</h3><p>Укажите, хотите ли вы приехать как резидент, гость, студент или партнёр проекта.</p><p>Для посещения некоторых событий нужна предварительная запись.</p><div class="contact-actions"><span class="button button-light button-disabled" aria-disabled="true"><span>Маршрут после публикации адреса</span></span></div></div><form class="contact-form" id="contact-form"><h3>Подготовить заявку</h3><label>Имя<input name="name" autocomplete="name" required></label><label>Email для ответа<input name="email" type="email" autocomplete="email" required></label><label>Формат участия<select name="role" required><option value="">Выберите формат</option><option>Резидент</option><option>Гость события</option><option>Студент</option><option>Преподаватель или куратор</option><option>Партнёр проекта</option></select></label><label>Коротко о запросе<textarea name="message" rows="4" required></textarea></label><button class="button button-filled" type="submit"><span>Подготовить письмо</span><span aria-hidden="true">↗</span></button><p class="form-hint">Пока рабочий адрес команды не опубликован, текст заявки будет скопирован — вы сможете сохранить его.</p><p class="form-status" role="status" aria-live="polite"></p></form></div></div></section>
   </main>
+
+  <button class="scroll-to-top" type="button" aria-label="Вернуться к началу страницы" aria-hidden="true" tabindex="-1">
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M12 19V5M6.5 10.5 12 5l5.5 5.5" />
+    </svg>
+  </button>
 
   <footer class="footer"><div class="shell"><div class="footer-grid"><div class="footer-brand"><img src="./public/assets/footer-mark.svg" alt=""><div><strong>МИХАЙЛОВСКОЕ</strong><p>Арт-резиденция в исторической усадьбе</p></div></div><div class="footer-column"><span>МЕСТО</span><p>Троицк<br>Новая Москва</p></div><nav class="footer-column" aria-label="Навигация в подвале"><span>РАЗДЕЛЫ</span><a href="#about">О проекте</a><a href="#programs">Программа</a><a href="#contacts">Контакты</a></nav></div><div class="footer-bottom"><span>© Михайловское, 2026</span><span>Перед поездкой подтвердите программу, адрес и условия у команды.</span></div></div></footer>
 </body>

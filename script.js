@@ -1,6 +1,31 @@
 document.documentElement.classList.add('motion-ready');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 
+const scrollToTopButton = document.querySelector('.scroll-to-top');
+if (scrollToTopButton) {
+  let scrollUpdateQueued = false;
+
+  const updateScrollToTopButton = () => {
+    const isVisible = window.scrollY > Math.min(window.innerHeight * 0.75, 640);
+    scrollToTopButton.classList.toggle('is-visible', isVisible);
+    scrollToTopButton.setAttribute('aria-hidden', String(!isVisible));
+    scrollToTopButton.tabIndex = isVisible ? 0 : -1;
+    scrollUpdateQueued = false;
+  };
+
+  window.addEventListener('scroll', () => {
+    if (scrollUpdateQueued) return;
+    scrollUpdateQueued = true;
+    window.requestAnimationFrame(updateScrollToTopButton);
+  }, { passive: true });
+
+  scrollToTopButton.addEventListener('click', () => {
+    window.scrollTo({ top: 0, behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+  });
+
+  updateScrollToTopButton();
+}
+
 const revealElements = [
   ...document.querySelectorAll('.about-copy h2, .section-heading h2, .audience h2, .voices-heading h2'),
 ];
@@ -168,8 +193,9 @@ contactForm?.addEventListener('submit', async (event) => {
 });
 
 const restoration = document.querySelector('[data-restoration]');
+const mobileRestoration = window.matchMedia('(max-width: 800px)');
 
-if (restoration) {
+if (restoration && !mobileRestoration.matches) {
   const restoredImage = restoration.querySelector('.restoration-after');
   const canvas = restoration.querySelector('.restoration-paint');
   const cursor = restoration.querySelector('.restoration-cursor');
@@ -182,10 +208,13 @@ if (restoration) {
   const grid = { columns: 144, rows: 48 };
   const paintedCells = new Uint8Array(grid.columns * grid.rows);
   const buildingCells = new Uint8Array(grid.columns * grid.rows);
-  const brushRadius = canvas.width * 0.045;
+  const brushRadius = canvas.width * 0.048;
+  const brushBristles = 11;
+  const clamp = (value, minimum, maximum) => Math.min(maximum, Math.max(minimum, value));
   let buildingCellCount = 0;
   let paintedCellCount = 0;
   let drawing = false;
+  let autoFilling = false;
   let complete = false;
   let lastPoint = null;
 
@@ -204,6 +233,7 @@ if (restoration) {
     drawing = false;
     restoration.classList.add('is-complete');
     restoration.classList.remove('is-hovered');
+    restoration.closest('.hero')?.classList.add('restoration-complete');
   };
 
   const updateCoverage = (x, y, radius) => {
@@ -228,44 +258,240 @@ if (restoration) {
     }
 
     const ratio = buildingCellCount ? paintedCellCount / buildingCellCount : 0;
-    if (ratio >= 0.5) finishRestoration();
+    if (ratio >= 0.25) startAutoFill();
   };
 
-  const stamp = (x, y) => {
-    maskContext.fillStyle = '#fff';
+  const stamp = (x, y, radius, angle, opacity) => {
+    maskContext.save();
+    maskContext.translate(x, y);
+    maskContext.rotate(angle);
+
+    const wash = maskContext.createRadialGradient(0, 0, radius * 0.08, 0, 0, radius);
+    wash.addColorStop(0, `rgba(255,255,255,${0.34 * opacity})`);
+    wash.addColorStop(0.55, `rgba(255,255,255,${0.23 * opacity})`);
+    wash.addColorStop(0.82, `rgba(255,255,255,${0.1 * opacity})`);
+    wash.addColorStop(1, 'rgba(255,255,255,0)');
+    maskContext.fillStyle = wash;
     maskContext.beginPath();
-    maskContext.arc(x, y, brushRadius, 0, Math.PI * 2);
+    maskContext.ellipse(0, 0, radius, radius * 0.72, 0, 0, Math.PI * 2);
     maskContext.fill();
-    updateCoverage(x, y, brushRadius);
+
+    for (let index = 0; index < brushBristles; index += 1) {
+      const position = brushBristles === 1 ? 0 : index / (brushBristles - 1) - 0.5;
+      const offsetY = position * radius * 1.42 + (Math.random() - 0.5) * radius * 0.13;
+      const bristleLength = radius * (0.72 + Math.random() * 0.55);
+      const bristleWidth = radius * (0.018 + Math.random() * 0.038);
+      const bristleAlpha = (0.12 + Math.random() * 0.2) * opacity;
+      maskContext.fillStyle = `rgba(255,255,255,${bristleAlpha})`;
+      maskContext.beginPath();
+      maskContext.ellipse(
+        (Math.random() - 0.5) * radius * 0.28,
+        offsetY,
+        bristleLength,
+        bristleWidth,
+        (Math.random() - 0.5) * 0.12,
+        0,
+        Math.PI * 2,
+      );
+      maskContext.fill();
+    }
+
+    for (let index = 0; index < 12; index += 1) {
+      const grainAngle = Math.random() * Math.PI * 2;
+      const grainDistance = Math.sqrt(Math.random()) * radius * 0.86;
+      const grainSize = radius * (0.01 + Math.random() * 0.022);
+      maskContext.fillStyle = `rgba(255,255,255,${(0.1 + Math.random() * 0.18) * opacity})`;
+      maskContext.beginPath();
+      maskContext.arc(
+        Math.cos(grainAngle) * grainDistance,
+        Math.sin(grainAngle) * grainDistance * 0.72,
+        grainSize,
+        0,
+        Math.PI * 2,
+      );
+      maskContext.fill();
+    }
+
+    maskContext.restore();
+    updateCoverage(x, y, radius * 0.7);
+  };
+
+  const spreadStamp = (x, y, radius, angle) => {
+    maskContext.save();
+    maskContext.translate(x, y);
+    maskContext.rotate(angle);
+    maskContext.fillStyle = 'rgba(255,255,255,.72)';
+    maskContext.beginPath();
+    maskContext.ellipse(0, 0, radius, radius * 0.64, 0, 0, Math.PI * 2);
+    maskContext.fill();
+
+    for (let index = 0; index < 3; index += 1) {
+      maskContext.fillStyle = `rgba(255,255,255,${0.28 + Math.random() * 0.24})`;
+      maskContext.beginPath();
+      maskContext.ellipse(
+        (Math.random() - 0.5) * radius * 0.45,
+        (Math.random() - 0.5) * radius * 1.12,
+        radius * (0.62 + Math.random() * 0.34),
+        radius * (0.035 + Math.random() * 0.04),
+        (Math.random() - 0.5) * 0.18,
+        0,
+        Math.PI * 2,
+      );
+      maskContext.fill();
+    }
+    maskContext.restore();
+  };
+
+  const startAutoFill = () => {
+    if (autoFilling || complete) return;
+    autoFilling = true;
+    drawing = false;
+    lastPoint = null;
+    restoration.classList.remove('is-hovered');
+
+    const finishImmediately = () => {
+      maskContext.save();
+      maskContext.globalAlpha = 1;
+      maskContext.fillStyle = '#fff';
+      maskContext.fillRect(0, 0, mask.width, mask.height);
+      maskContext.restore();
+      renderPaint();
+      finishRestoration();
+    };
+
+    if (reducedMotion.matches) {
+      finishImmediately();
+      return;
+    }
+
+    const totalCells = grid.columns * grid.rows;
+    const distances = new Int16Array(totalCells);
+    distances.fill(-1);
+    const queue = new Int32Array(totalCells);
+    let queueStart = 0;
+    let queueEnd = 0;
+
+    for (let index = 0; index < totalCells; index += 1) {
+      if (!paintedCells[index]) continue;
+      distances[index] = 0;
+      queue[queueEnd] = index;
+      queueEnd += 1;
+    }
+
+    if (queueEnd === 0) {
+      finishImmediately();
+      return;
+    }
+
+    const neighborOffsets = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+    while (queueStart < queueEnd) {
+      const index = queue[queueStart];
+      queueStart += 1;
+      const column = index % grid.columns;
+      const row = Math.floor(index / grid.columns);
+
+      neighborOffsets.forEach(([columnOffset, rowOffset]) => {
+        const nextColumn = column + columnOffset;
+        const nextRow = row + rowOffset;
+        if (nextColumn < 0 || nextColumn >= grid.columns || nextRow < 0 || nextRow >= grid.rows) return;
+        const nextIndex = nextRow * grid.columns + nextColumn;
+        if (distances[nextIndex] !== -1) return;
+        distances[nextIndex] = distances[index] + 1;
+        queue[queueEnd] = nextIndex;
+        queueEnd += 1;
+      });
+    }
+
+    const pendingCells = [];
+    let maximumDistance = 1;
+    for (let index = 0; index < totalCells; index += 1) {
+      if (!buildingCells[index] || paintedCells[index]) continue;
+      const distance = distances[index];
+      maximumDistance = Math.max(maximumDistance, distance);
+      pendingCells.push({ index, distance });
+    }
+    pendingCells.sort((first, second) => first.distance - second.distance);
+
+    const cellWidth = canvas.width / grid.columns;
+    const cellHeight = canvas.height / grid.rows;
+    const spreadRadius = Math.max(cellWidth, cellHeight) * 1.55;
+    const duration = 700;
+    let pendingIndex = 0;
+    let startTime;
+
+    const animateSpread = (time) => {
+      if (startTime === undefined) startTime = time;
+      const progress = clamp((time - startTime) / duration, 0, 1);
+      const distanceLimit = progress * maximumDistance;
+
+      while (pendingIndex < pendingCells.length && pendingCells[pendingIndex].distance <= distanceLimit) {
+        const { index } = pendingCells[pendingIndex];
+        const column = index % grid.columns;
+        const row = Math.floor(index / grid.columns);
+        spreadStamp(
+          (column + 0.5) * cellWidth,
+          (row + 0.5) * cellHeight,
+          spreadRadius * (0.88 + Math.random() * 0.22),
+          (Math.random() - 0.5) * 0.34,
+        );
+        paintedCells[index] = 1;
+        pendingIndex += 1;
+      }
+
+      renderPaint();
+      if (progress < 1 && pendingIndex < pendingCells.length) {
+        requestAnimationFrame(animateSpread);
+        return;
+      }
+      finishImmediately();
+    };
+
+    requestAnimationFrame(animateSpread);
   };
 
   const paintTo = (point) => {
     if (!lastPoint) {
-      stamp(point.x, point.y);
-      lastPoint = point;
+      const radius = brushRadius * (0.78 + point.pressure * 0.34);
+      stamp(point.x, point.y, radius, 0, 0.72 + point.pressure * 0.2);
+      if (!autoFilling) lastPoint = point;
       renderPaint();
       return;
     }
 
-    const distance = Math.hypot(point.x - lastPoint.x, point.y - lastPoint.y);
-    const steps = Math.max(1, Math.ceil(distance / (brushRadius * 0.35)));
+    const deltaX = point.x - lastPoint.x;
+    const deltaY = point.y - lastPoint.y;
+    const distance = Math.hypot(deltaX, deltaY);
+    const elapsed = Math.max(1, point.time - lastPoint.time);
+    const speed = distance / elapsed;
+    const speedScale = clamp(1.08 - speed * 0.075, 0.68, 1.06);
+    const angle = Math.atan2(deltaY, deltaX);
+    const steps = Math.max(1, Math.ceil(distance / (brushRadius * 0.12)));
+
     for (let step = 1; step <= steps; step += 1) {
       const amount = step / steps;
+      const pressure = lastPoint.pressure + (point.pressure - lastPoint.pressure) * amount;
+      const radius = brushRadius * speedScale * (0.76 + pressure * 0.38);
       stamp(
-        lastPoint.x + (point.x - lastPoint.x) * amount,
-        lastPoint.y + (point.y - lastPoint.y) * amount,
+        lastPoint.x + deltaX * amount,
+        lastPoint.y + deltaY * amount,
+        radius,
+        angle,
+        0.62 + pressure * 0.28,
       );
-      if (complete) break;
+      if (complete || autoFilling) break;
     }
-    lastPoint = point;
+    if (!autoFilling) lastPoint = point;
     renderPaint();
   };
 
   const pointFromEvent = (event) => {
     const bounds = restoration.getBoundingClientRect();
+    const pressure = event.pressure > 0 ? event.pressure : event.pointerType === 'mouse' ? 0.45 : 0.65;
     return {
       x: (event.clientX - bounds.left) * (canvas.width / bounds.width),
       y: (event.clientY - bounds.top) * (canvas.height / bounds.height),
+      pressure,
+      time: event.timeStamp,
     };
   };
 
@@ -281,7 +507,14 @@ if (restoration) {
     source.height = canvas.height;
     const sourceContext = source.getContext('2d', { willReadFrequently: true });
     sourceContext.drawImage(restoredImage, 0, 0, canvas.width, canvas.height);
-    const pixels = sourceContext.getImageData(0, 0, canvas.width, canvas.height).data;
+    let pixels;
+    try {
+      pixels = sourceContext.getImageData(0, 0, canvas.width, canvas.height).data;
+    } catch {
+      buildingCells.fill(1);
+      buildingCellCount = buildingCells.length;
+      return;
+    }
     const cellWidth = canvas.width / grid.columns;
     const cellHeight = canvas.height / grid.rows;
 
@@ -302,7 +535,7 @@ if (restoration) {
   else restoredImage.addEventListener('load', prepareRestoration, { once: true });
 
   restoration.addEventListener('pointerenter', (event) => {
-    if (!finePointer.matches || complete) return;
+    if (!finePointer.matches || complete || autoFilling) return;
     restoration.classList.add('is-hovered');
     moveCursor(event);
   });
@@ -310,16 +543,16 @@ if (restoration) {
     if (!drawing) restoration.classList.remove('is-hovered');
   });
   restoration.addEventListener('pointerdown', (event) => {
-    if (!finePointer.matches || complete || event.button !== 0) return;
+    if (complete || autoFilling || (event.pointerType === 'mouse' && event.button !== 0)) return;
     drawing = true;
     lastPoint = null;
     restoration.setPointerCapture(event.pointerId);
-    moveCursor(event);
+    if (finePointer.matches) moveCursor(event);
     paintTo(pointFromEvent(event));
   });
   restoration.addEventListener('pointermove', (event) => {
-    if (!finePointer.matches || complete) return;
-    moveCursor(event);
+    if (complete || autoFilling) return;
+    if (finePointer.matches) moveCursor(event);
     if (drawing) paintTo(pointFromEvent(event));
   });
   restoration.addEventListener('pointerup', (event) => {
