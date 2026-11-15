@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Михайловское — арт-резиденция в исторической усадьбе">
+  <meta name="theme-color" content="#ebe4dc">
+  <meta name="color-scheme" content="light">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="ru_RU">
+  <meta property="og:title" content="Михайловское — арт-резиденция">
+  <meta property="og:description" content="Арт-резиденция, открытые мастерские и культурные события в исторической усадьбе в Троицке.">
+  <title>Михайловское — арт-резиденция</title>
+  <link rel="preload" href="./public/assets/onest-variable.ttf" as="font" type="font/ttf" crossorigin>
+  <link rel="preload" href="./public/assets/manor-ruined-line-art.png" as="image" type="image/png" fetchpriority="high">
+  <link rel="preload" href="./public/assets/manor-restored-color-v2.png" as="image" type="image/png">
+  <link rel="stylesheet" href="./styles.css">
+  <script defer src="./script.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Перейти к содержимому</a>
+  <header class="hero" id="top">
+    <nav class="desktop-nav shell" aria-label="Основная навигация">
+      <img class="brand-mark" src="./public/assets/partner-hse.svg" alt="Михайловское">
+      <div class="nav-links">
+        <a href="#about">О проекте</a><a href="#audience">Для кого</a><a href="#stay">Проживание</a><a href="#programs">Программы</a><a href="#contacts">Контакты</a>
+      </div>
+    </nav>
+    <div class="mobile-nav shell">
+      <img class="brand-mark" src="./public/assets/partner-hse.svg" alt="Михайловское">
+      <button class="menu-button" type="button" aria-label="Открыть меню" aria-expanded="false"><i></i><i></i><i></i></button>
+    </div>
+    <div class="mobile-menu" aria-hidden="true" inert><a href="#about">О проекте</a><a href="#audience">Для кого</a><a href="#stay">Проживание</a><a href="#programs">Программы</a><a href="#contacts">Контакты</a></div>
+    <div class="hero-art shell">
+      <img class="hero-wordmark" src="./public/assets/logo-mark.svg" alt="Михайловское">
+      <div class="restoration" data-restoration>
+        <img class="hero-building restoration-before" src="./public/assets/manor-ruined-line-art.png" alt="Разрушенная усадьба Михайловское, рисунок пером" width="2172" height="724" fetchpriority="high" decoding="async">
+        <canvas class="restoration-paint" width="2172" height="724" aria-hidden="true"></canvas>
+        <img class="hero-building restoration-after" src="./public/assets/manor-restored-color-v2.png" alt="Отреставрированная усадьба Михайловское" width="2172" height="724" decoding="async">
+        <div class="restoration-cursor" aria-hidden="true"></div>
+      </div>
+    </div>
+    <div class="hero-bottom shell">
+      <div><h1>Арт-резиденция</h1><p>В исторической усадьбе «Михайловское»</p></div>
+      <a class="button button-outline" href="#contacts"><span>Обсудить участие</span><span>↗</span></a>
+    </div>
+    <div class="partners shell" aria-label="Партнёры резиденции">
+      <div class="partners-track">
+        <div class="partners-group">
+          <img src="./public/assets/hero-building.png" alt="КиноПарк Москино"><img src="./public/assets/portrait-mask.png" alt="Департамент культуры города Москвы"><img src="./public/assets/hero-wordmark.svg" alt="Высшая школа экономики"><img src="./public/assets/partner-vz.svg" alt="Взгляд молодёжи">
+        </div>
+        <div class="partners-group" aria-hidden="true">
+          <img src="./public/assets/hero-building.png" alt=""><img src="./public/assets/portrait-mask.png" alt=""><img src="./public/assets/hero-wordmark.svg" alt=""><img src="./public/assets/partner-vz.svg" alt="">
+        </div>
+        <div class="partners-group" aria-hidden="true">
+          <img src="./public/assets/hero-building.png" alt=""><img src="./public/assets/portrait-mask.png" alt=""><img src="./public/assets/hero-wordmark.svg" alt=""><img src="./public/assets/partner-vz.svg" alt="">
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main id="main-content" tabindex="-1">
+    <section class="about section shell" id="about">
+      <p class="eyebrow mobile-only">О РЕЗИДЕНЦИИ</p>
+      <div class="about-grid">
+        <img src="./public/assets/event-03.jpg" alt="Выставка в исторической усадьбе" loading="lazy" decoding="async" width="1264" height="848">
+        <div class="about-copy"><h2>Историческая усадьба.<br>Живое искусство.</h2><p>«Михайловское» — арт-резиденция в исторической усадьбе в Троицке. Здесь художники работают, исследуют место и делятся своими находками.</p><hr><p>Для гостей — выставки, открытые мастерские и встречи с художниками. Можно познакомиться с современной художественной практикой и увидеть, как рождается искусство.</p></div>
+      </div>
+      <div class="about-topics"><span>Художественная практика</span><span>Открытые мастерские</span><span>Выставки и встречи</span></div>
+    </section>
+
+    <section class="audience section" id="audience">
+      <div class="shell">
+        <div class="folio"><span>МИХАЙЛОВСКОЕ</span><span>ХУДОЖНИКАМ И ГОСТЯМ</span><span>ДЛЯ КОГО / 01—04</span></div>
+        <h2>Место для каждого</h2><p class="lead">Четыре способа стать частью творческой жизни резиденции</p>
+        <div class="audience-grid">
+          <article class="audience-card featured"><div class="card-meta"><strong>01</strong><span>СОБСТВЕННАЯ ПРАКТИКА</span></div><h3>Художники</h3><p>Работать над проектом, исследовать место и представить результат.</p><a href="#contacts"><span>Обсудить участие</span><span aria-hidden="true">↗</span></a></article>
+          <article class="audience-card"><div class="card-meta"><strong>02</strong><span>ОБУЧЕНИЕ</span></div><h3>Студенты</h3><p>Увидеть работу мастерских и познакомиться с практикой резидентов.</p><a href="#contacts"><span>Задать вопрос</span><span aria-hidden="true">↗</span></a></article>
+          <article class="audience-card"><div class="card-meta"><strong>03</strong><span>СОТРУДНИЧЕСТВО</span></div><h3>Кураторы и преподаватели</h3><p>Обсудить совместную программу, исследование или профессиональную встречу.</p><a href="#contacts"><span>Предложить проект</span><span aria-hidden="true">↗</span></a></article>
+          <article class="audience-card"><div class="card-meta"><strong>04</strong><span>СОБЫТИЯ</span></div><h3>Гости</h3><p>Посетить выставку, открытую мастерскую или прогулку по усадьбе.</p><a href="#events"><span>Выбрать событие</span><span aria-hidden="true">↓</span></a></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="stay section shell" id="stay">
+      <div class="section-heading"><h2>Проживание и работа</h2><p>Условия поездки согласуются индивидуально до приезда.</p></div>
+      <div class="stay-grid"><figure><img src="./public/assets/residence-interior.jpg" alt="Интерьер резиденции" loading="lazy" decoding="async" width="1200" height="896"><figcaption>Интерьер резиденции</figcaption></figure><div class="conditions"><article><span>01</span><div><h3>Размещение</h3><p>Комната и доступные даты фиксируются до приезда.</p></div></article><article><span>02</span><div><h3>Мастерская</h3><p>Пространство подбирается под формат и материалы проекта.</p></div></article><article><span>03</span><div><h3>Быт и доступность</h3><p>Питание, оборудование и особенности среды обсуждаются заранее.</p></div></article></div></div>
+      <div class="stay-action"><p>Даты, стоимость и состав поддержки подтверждает команда резиденции.</p><a class="button button-filled" href="#contacts"><span>Запросить условия</span><span>↗</span></a></div>
+    </section>
+
+    <section class="programs section shell" id="programs">
+      <div class="section-heading programs-heading"><h2>Два способа участвовать</h2><p>Выберите подходящий сценарий — для работы или для посещения.</p></div>
+      <div class="participation"><article><span class="participation-index">01 / РЕЗИДЕНТ</span><h3>Работать над проектом</h3><p>В заявке укажите практику, задачу и желаемые даты.</p><a class="button button-filled" href="#contacts"><span>Подать заявку</span><span>↗</span></a></article><article><span class="participation-index">02 / ГОСТЬ</span><h3>Приехать на событие</h3><p>Выберите выставку, мастерскую или прогулку. Для части событий нужна запись.</p><a class="button button-outline" href="#events"><span>Смотреть программу</span><span>↓</span></a></article></div>
+      <div class="application-process" aria-labelledby="application-process-title"><h3 id="application-process-title">Заявка резидента</h3><ol><li><strong>01</strong><span><b>Запрос</b>Проект и даты</span></li><li><strong>02</strong><span><b>Уточнение</b>Пространство и условия</span></li><li><strong>03</strong><span><b>Подтверждение</b>Финальные детали поездки</span></li></ol></div>
+      <div class="events-title" id="events"><h3>Ближайшие события</h3><p class="mobile-only">НОЯБРЬ — ДЕКАБРЬ 2026<br>Пример программы событий</p></div>
+      <div class="filters" role="group" aria-label="Фильтр событий"><button class="active" data-filter="all" aria-pressed="true">Все события</button><button data-filter="exhibition" aria-pressed="false">Выставки</button><button data-filter="workshop" aria-pressed="false">Мастерские</button><button data-filter="walk" aria-pressed="false">Прогулки</button></div>
+      <div class="event-grid">
+        <article class="event-card" data-category="exhibition"><img src="./public/assets/gallery-painting.jpg" alt="Экспозиция выставки «Тихое присутствие»" loading="lazy" decoding="async" width="650" height="390"><div class="event-meta"><span>ВЫСТАВКА</span><span>ТРОИЦК · ПО ЗАПИСИ</span></div><h4>Тихое присутствие</h4><p>О том, как замечать повседневное.<br>Работы художников резиденции.</p><time datetime="2026-11-21">21 НОЯБРЯ — 20 ДЕКАБРЯ</time><button class="event-more" type="button" aria-expanded="false" aria-controls="event-exhibition-details">Подробнее <span aria-hidden="true">↓</span></button><div class="event-details" id="event-exhibition-details" hidden><p>Формат посещения и необходимость регистрации подтвердит команда резиденции.</p><a href="#contacts">Запросить запись ↗</a></div></article>
+        <article class="event-card" data-category="workshop"><img src="./public/assets/event-01.jpg" alt="Работа с глиной в мастерской" loading="lazy" decoding="async" width="650" height="390"><div class="event-meta"><span>МАСТЕРСКАЯ</span><span>ТРОИЦК · ПО ЗАПИСИ</span></div><h4>Глина. Форма. Чувство.</h4><p>Знакомство с глиной:<br>от материала — к своему предмету.</p><time datetime="2026-11-22T12:00">22 НОЯБРЯ / 12:00</time><button class="event-more" type="button" aria-expanded="false" aria-controls="event-workshop-details">Подробнее <span aria-hidden="true">↓</span></button><div class="event-details" id="event-workshop-details" hidden><p>Возраст участников, длительность и материалы необходимо подтвердить перед записью.</p><a href="#contacts">Запросить запись ↗</a></div></article>
+        <article class="event-card" data-category="walk"><img src="./public/assets/gallery-graphics.jpg" alt="Территория усадьбы во время прогулки" loading="lazy" decoding="async" width="650" height="390"><div class="event-meta"><span>ПРОГУЛКА</span><span>ТРОИЦК · ПО ЗАПИСИ</span></div><h4>Усадьба крупным планом</h4><p>История усадьбы и прогулка<br>по её территории.</p><time datetime="2026-11-28T13:00">28 НОЯБРЯ / 13:00</time><button class="event-more" type="button" aria-expanded="false" aria-controls="event-walk-details">Подробнее <span aria-hidden="true">↓</span></button><div class="event-details" id="event-walk-details" hidden><p>Точку встречи, длительность маршрута и требования к одежде подтвердит команда.</p><a href="#contacts">Запросить запись ↗</a></div></article>
+      </div>
+    </section>
+
+    <section class="gallery section" id="gallery"><div class="shell"><div class="section-heading"><h2>Из мастерских</h2><p>Керамика, живопись и графика.<br>Иллюстративная подборка.</p></div><div class="gallery-grid"><div><figure><img src="./public/assets/gallery-ceramics.jpg" alt="Керамика" loading="lazy" width="650" height="488"><figcaption><span>01 / Керамика</span><a href="./public/assets/gallery-ceramics.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: керамика">Открыть ↗</a></figcaption></figure><figure><img src="./public/assets/portrait-mark.jpg" alt="Графика" loading="lazy" width="650" height="356"><figcaption><span>03 / Графика</span><a href="./public/assets/portrait-mark.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: графика">Открыть ↗</a></figcaption></figure></div><div><figure class="vertical"><img src="./public/assets/about-interior.jpg" alt="Живопись" loading="lazy" width="424" height="566"><figcaption><span>02 / Живопись</span><a href="./public/assets/about-interior.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: живопись">Открыть ↗</a></figcaption></figure><div class="gallery-note"><h3>Работа с материалом</h3><p>Иллюстративные изображения. Реальные работы, авторы и годы будут добавлены после согласования.</p></div></div></div></div></section>
+
+    <section class="voices section shell" id="voices">
+      <div class="voices-heading"><p>УСЛОВИЯ ДЛЯ ПРАКТИКИ</p><h2>Что даёт резиденция</h2><span>Пространство, контекст и профессиональный диалог.</span></div>
+      <div class="voices-grid"><figure class="voices-image"><img src="./public/assets/event-02.jpg" alt="Работа художницы в мастерской" loading="lazy" decoding="async" width="896" height="1200"><figcaption>Работа в мастерской</figcaption></figure><div class="voice-benefits"><article><span>01</span><div><h3>Время и пространство</h3><p>Сосредоточенная работа над проектом в подходящей мастерской.</p></div></article><article><span>02</span><div><h3>Контекст места</h3><p>История усадьбы и территория как материал для исследования.</p></div></article><article><span>03</span><div><h3>Диалог и показ</h3><p>Обсуждение процесса и формат встречи со зрителем.</p></div></article></div></div>
+      <div class="voices-footer"><span>Формат поддержки согласуется под задачи проекта.</span><a href="#contacts">Обсудить проект ↗</a></div>
+    </section>
+
+    <section class="contacts section" id="contacts"><div class="shell"><div class="section-heading"><h2>Планируйте приезд</h2><p>Подготовьте заявку,<br>чтобы обсудить детали визита.</p></div><div class="contacts-grid"><div><p class="address">Троицк, Новая Москва<br>Историческая усадьба «Михайловское»</p><p>Точный адрес, точка въезда и рабочие контакты команды будут опубликованы после подтверждения.</p><hr><h3>Перед заявкой</h3><p>Укажите, хотите ли вы приехать как резидент, гость, студент или партнёр проекта.</p><p>Для посещения некоторых событий нужна предварительная запись.</p><div class="contact-actions"><span class="button button-light button-disabled" aria-disabled="true"><span>Маршрут после публикации адреса</span></span></div></div><form class="contact-form" id="contact-form"><h3>Подготовить заявку</h3><label>Имя<input name="name" autocomplete="name" required></label><label>Email для ответа<input name="email" type="email" autocomplete="email" required></label><label>Формат участия<select name="role" required><option value="">Выберите формат</option><option>Резидент</option><option>Гость события</option><option>Студент</option><option>Преподаватель или куратор</option><option>Партнёр проекта</option></select></label><label>Коротко о запросе<textarea name="message" rows="4" required></textarea></label><button class="button button-filled" type="submit"><span>Подготовить письмо</span><span aria-hidden="true">↗</span></button><p class="form-hint">Пока рабочий адрес команды не опубликован, текст заявки будет скопирован — вы сможете сохранить его.</p><p class="form-status" role="status" aria-live="polite"></p></form></div></div></section>
+  </main>
+
+  <footer class="footer"><div class="shell"><div class="footer-grid"><div class="footer-brand"><img src="./public/assets/footer-mark.svg" alt=""><div><strong>МИХАЙЛОВСКОЕ</strong><p>Арт-резиденция в исторической усадьбе</p></div></div><div class="footer-column"><span>МЕСТО</span><p>Троицк<br>Новая Москва</p></div><nav class="footer-column" aria-label="Навигация в подвале"><span>РАЗДЕЛЫ</span><a href="#about">О проекте</a><a href="#programs">Программа</a><a href="#contacts">Контакты</a></nav></div><div class="footer-bottom"><span>© Михайловское, 2026</span><span>Перед поездкой подтвердите программу, адрес и условия у команды.</span></div></div></footer>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "name": "mikhailovskoe-landing",
+  "private": true,
+  "version": "1.0.0",
+  "scripts": {
+    "dev": "npx serve . -l 4173",
+    "start": "npx serve . -l 4173"
+  }
+}
