@@ -65,7 +65,7 @@ if ('IntersectionObserver' in window) {
       }
       observer.unobserve(entry.target);
     });
-  }, { threshold: 0.12, rootMargin: '0px 0px -12% 0px' });
+  }, { threshold: 0.06, rootMargin: '0px 0px -12% 0px' });
 
   motionTargets.forEach((target) => revealObserver.observe(target));
 } else {
@@ -119,22 +119,146 @@ document.addEventListener('keydown', (event) => {
   }
 });
 
-const filterButtons = document.querySelectorAll('.filters button');
-const cards = document.querySelectorAll('.event-card');
+const filterButtons = [...document.querySelectorAll('.filters button')];
+const cards = [...document.querySelectorAll('.event-card')];
+const eventRail = document.querySelector('.event-rail');
+const eventGrid = document.querySelector('.event-grid');
+const eventsMoreButton = document.querySelector('.events-more');
+const mobileEvents = window.matchMedia('(max-width: 800px)');
+const MARQUEE_CYCLE_MS = 60000;
+let mobileEventsExpanded = false;
+let manualMarqueePause = false;
+let draggingRail = false;
+let railInteracting = false;
+let railInView = false;
+let dragStartX = 0;
+let dragStartScroll = 0;
+let marqueeFrame = null;
+let marqueePreviousTime = 0;
+let marqueePosition = 0;
 
-filterButtons.forEach((button) => button.addEventListener('click', () => {
-  if (button.getAttribute('aria-pressed') === 'true') return;
-  filterButtons.forEach((item) => {
-    item.classList.remove('active');
-    item.setAttribute('aria-pressed', 'false');
+const visibleEventCards = () => cards.filter((card) => !card.hidden);
+const hasExpandedEvent = () => visibleEventCards().some((card) => card.querySelector('.event-more')?.getAttribute('aria-expanded') === 'true');
+
+const removeEventLoopClones = () => {
+  eventGrid?.querySelectorAll('.event-card-clone').forEach((clone) => clone.remove());
+};
+
+const syncEventLoopClones = () => {
+  removeEventLoopClones();
+  if (!eventGrid || !eventRail?.classList.contains('is-marquee') || reducedMotion.matches) return;
+
+  visibleEventCards().forEach((card) => {
+    const clone = card.cloneNode(true);
+    clone.classList.add('event-card-clone');
+    clone.setAttribute('aria-hidden', 'true');
+    clone.querySelectorAll('[id]').forEach((element) => element.removeAttribute('id'));
+    clone.querySelectorAll('[aria-controls]').forEach((element) => element.removeAttribute('aria-controls'));
+    clone.querySelectorAll('a,button').forEach((element) => {
+      element.setAttribute('tabindex', '-1');
+      if (element instanceof HTMLButtonElement) element.disabled = true;
+    });
+    eventGrid.append(clone);
   });
-  button.classList.add('active');
-  button.setAttribute('aria-pressed', 'true');
-  const filter = button.dataset.filter;
+};
+
+const eventLoopWidth = () => {
+  const firstCard = visibleEventCards()[0];
+  const firstClone = eventGrid?.querySelector('.event-card-clone');
+  if (!firstCard || !firstClone) return 0;
+  return firstClone.offsetLeft - firstCard.offsetLeft;
+};
+
+const normalizeEventLoopPosition = () => {
+  if (!eventRail?.classList.contains('is-marquee')) return;
+  const loopWidth = eventLoopWidth();
+  if (loopWidth <= 1 || eventRail.scrollLeft < loopWidth) return;
+  eventRail.scrollLeft %= loopWidth;
+  marqueePosition = eventRail.scrollLeft;
+};
+
+const stopMarquee = () => {
+  if (marqueeFrame === null) return;
+  window.cancelAnimationFrame(marqueeFrame);
+  marqueeFrame = null;
+};
+
+const marqueeCanRun = () => (
+  eventRail?.classList.contains('is-marquee')
+  && railInView
+  && !manualMarqueePause
+  && !draggingRail
+  && !railInteracting
+  && !hasExpandedEvent()
+  && !reducedMotion.matches
+  && !document.hidden
+);
+
+const runMarquee = (time) => {
+  if (!marqueeCanRun()) {
+    marqueeFrame = null;
+    return;
+  }
+  const loopWidth = eventLoopWidth();
+  if (loopWidth > 1 && marqueePreviousTime) {
+    const elapsed = time - marqueePreviousTime;
+    marqueePosition += loopWidth * elapsed / MARQUEE_CYCLE_MS;
+    if (marqueePosition >= loopWidth) marqueePosition %= loopWidth;
+    eventRail.scrollLeft = marqueePosition;
+  }
+  marqueePreviousTime = time;
+  marqueeFrame = window.requestAnimationFrame(runMarquee);
+};
+
+const updateMarquee = () => {
+  stopMarquee();
+  marqueePreviousTime = 0;
+  marqueePosition = eventRail?.scrollLeft ?? 0;
+  const canRun = marqueeCanRun();
+  if (canRun) marqueeFrame = window.requestAnimationFrame(runMarquee);
+};
+
+const updateEventPresentation = ({ reset = false } = {}) => {
+  const visibleCards = visibleEventCards();
+  if (reset) {
+    mobileEventsExpanded = false;
+    manualMarqueePause = false;
+    if (eventRail) eventRail.scrollLeft = 0;
+  }
+
+  const shouldLimitMobile = mobileEvents.matches && visibleCards.length > 4 && !mobileEventsExpanded;
+  visibleCards.forEach((card, index) => card.classList.toggle('is-mobile-overflow', shouldLimitMobile && index >= 3));
+
+  if (eventsMoreButton) {
+    const canExpand = mobileEvents.matches && visibleCards.length > 4;
+    eventsMoreButton.hidden = !canExpand;
+    eventsMoreButton.querySelector('span').textContent = mobileEventsExpanded ? 'Свернуть' : 'Показать ещё';
+    eventsMoreButton.querySelector('span:last-child').textContent = mobileEventsExpanded ? '↑' : '↓';
+    eventsMoreButton.setAttribute('aria-expanded', String(mobileEventsExpanded));
+  }
+
+  const shouldMarquee = !mobileEvents.matches && visibleCards.length > 4;
+  eventRail?.classList.toggle('is-marquee', shouldMarquee);
+  syncEventLoopClones();
+  if (!shouldMarquee && eventRail) eventRail.scrollLeft = 0;
+  updateMarquee();
+};
+
+const closeEventDetails = () => {
   cards.forEach((card) => {
-    card.hidden = filter !== 'all' && card.dataset.category !== filter;
+    const button = card.querySelector('.event-more');
+    if (!button) return;
+    button.setAttribute('aria-expanded', 'false');
+    card.classList.remove('is-expanded');
+    const label = button.querySelector('span');
+    if (label) label.textContent = 'Подробнее';
+    const details = document.getElementById(button.getAttribute('aria-controls'));
+    if (details) details.hidden = true;
   });
-  [...cards].filter((card) => !card.hidden).forEach((card, index) => {
+};
+
+const animateVisibleEvents = () => {
+  visibleEventCards().filter((card) => !card.classList.contains('is-mobile-overflow')).forEach((card, index) => {
     if (typeof card.animate !== 'function') return;
     card.animate(
       reducedMotion.matches
@@ -150,15 +274,128 @@ filterButtons.forEach((button) => button.addEventListener('click', () => {
       },
     );
   });
+};
+
+filterButtons.forEach((button) => button.addEventListener('click', () => {
+  if (button.getAttribute('aria-pressed') === 'true') return;
+  filterButtons.forEach((item) => {
+    item.classList.remove('active');
+    item.setAttribute('aria-pressed', 'false');
+  });
+  button.classList.add('active');
+  button.setAttribute('aria-pressed', 'true');
+  const filter = button.dataset.filter;
+  cards.forEach((card) => {
+    const categories = card.dataset.category?.split(/\s+/) ?? [];
+    card.hidden = filter !== 'all' && !categories.includes(filter);
+    card.classList.remove('is-mobile-overflow');
+  });
+  closeEventDetails();
+  updateEventPresentation({ reset: true });
+  animateVisibleEvents();
 }));
 
 document.querySelectorAll('.event-more').forEach((button) => button.addEventListener('click', () => {
   const details = document.getElementById(button.getAttribute('aria-controls'));
   const open = button.getAttribute('aria-expanded') === 'true';
   button.setAttribute('aria-expanded', String(!open));
+  button.closest('.event-card')?.classList.toggle('is-expanded', !open);
+  const label = button.querySelector('span');
+  if (label) label.textContent = open ? 'Подробнее' : 'Свернуть';
   details.hidden = open;
-  button.querySelector('span').textContent = open ? '↓' : '↑';
+  updateMarquee();
 }));
+
+eventsMoreButton?.addEventListener('click', () => {
+  mobileEventsExpanded = !mobileEventsExpanded;
+  updateEventPresentation();
+  if (mobileEventsExpanded) {
+    visibleEventCards().slice(3).forEach((card, index) => {
+      if (typeof card.animate !== 'function') return;
+      card.animate(
+        reducedMotion.matches
+          ? [{ opacity: 0 }, { opacity: 1 }]
+          : [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'translateY(0)' }],
+        { duration: reducedMotion.matches ? 120 : 240, delay: reducedMotion.matches ? 0 : index * 45, easing: 'cubic-bezier(.23,1,.32,1)' },
+      );
+    });
+  }
+});
+
+eventRail?.addEventListener('pointerdown', (event) => {
+  if (!eventRail.classList.contains('is-marquee') || event.target.closest('button,a')) return;
+  draggingRail = true;
+  manualMarqueePause = true;
+  dragStartX = event.clientX;
+  dragStartScroll = eventRail.scrollLeft;
+  eventRail.classList.add('is-dragging');
+  eventRail.setPointerCapture(event.pointerId);
+  updateMarquee();
+});
+eventRail?.addEventListener('pointermove', (event) => {
+  if (!draggingRail) return;
+  eventRail.scrollLeft = dragStartScroll - (event.clientX - dragStartX);
+  normalizeEventLoopPosition();
+});
+const finishRailDrag = (event) => {
+  if (!draggingRail) return;
+  draggingRail = false;
+  eventRail.classList.remove('is-dragging');
+  if (eventRail.hasPointerCapture(event.pointerId)) eventRail.releasePointerCapture(event.pointerId);
+  updateMarquee();
+};
+eventRail?.addEventListener('pointerup', finishRailDrag);
+eventRail?.addEventListener('pointercancel', finishRailDrag);
+eventRail?.addEventListener('pointerenter', () => {
+  railInteracting = true;
+  updateMarquee();
+});
+eventRail?.addEventListener('pointerleave', () => {
+  railInteracting = false;
+  updateMarquee();
+});
+eventRail?.addEventListener('focusin', () => {
+  railInteracting = true;
+  updateMarquee();
+});
+eventRail?.addEventListener('focusout', (event) => {
+  if (eventRail.contains(event.relatedTarget)) return;
+  railInteracting = false;
+  updateMarquee();
+});
+eventRail?.addEventListener('wheel', (event) => {
+  if (!eventRail.classList.contains('is-marquee')) return;
+  if (Math.abs(event.deltaY) <= Math.abs(event.deltaX)) return;
+  event.preventDefault();
+  manualMarqueePause = true;
+  eventRail.scrollLeft += event.deltaY;
+  normalizeEventLoopPosition();
+  updateMarquee();
+}, { passive: false });
+eventRail?.addEventListener('keydown', (event) => {
+  if (!eventRail.classList.contains('is-marquee') || !['ArrowLeft', 'ArrowRight'].includes(event.key)) return;
+  manualMarqueePause = true;
+  window.requestAnimationFrame(normalizeEventLoopPosition);
+  updateMarquee();
+});
+
+if ('IntersectionObserver' in window && eventRail) {
+  const railObserver = new IntersectionObserver(([entry]) => {
+    railInView = entry.isIntersecting;
+    updateMarquee();
+  }, { threshold: 0.05 });
+  railObserver.observe(eventRail);
+} else {
+  railInView = true;
+}
+
+mobileEvents.addEventListener('change', () => updateEventPresentation({ reset: true }));
+reducedMotion.addEventListener('change', () => {
+  syncEventLoopClones();
+  updateMarquee();
+});
+document.addEventListener('visibilitychange', updateMarquee);
+updateEventPresentation({ reset: true });
 
 const contactForm = document.querySelector('#contact-form');
 
