@@ -36,7 +36,6 @@ const ruleElements = [...document.querySelectorAll('.about-copy hr, .contacts-gr
 const staggerGroups = [
   { element: document.querySelector('.audience-grid'), items: '.audience-card' },
   { element: document.querySelector('.event-grid'), items: '.event-card' },
-  { element: document.querySelector('.gallery-grid'), items: 'figure, .gallery-note' },
 ].filter(({ element }) => element);
 
 revealElements.forEach((element) => element.classList.add('print-reveal'));
@@ -397,24 +396,251 @@ reducedMotion.addEventListener('change', () => {
 document.addEventListener('visibilitychange', updateMarquee);
 updateEventPresentation({ reset: true });
 
+const merchSection = document.querySelector('.merch');
+const merchRail = document.querySelector('.merch-rail');
+const merchCards = [...document.querySelectorAll('.merch-card')];
+const merchPreviousButton = document.querySelector('.merch-prev');
+const merchNextButton = document.querySelector('.merch-next');
+const merchMoreButton = document.querySelector('.merch-more');
+const mobileMerch = window.matchMedia('(max-width: 800px)');
+let mobileMerchExpanded = false;
+let merchScrollFrame = null;
+
+const updateMerchControls = () => {
+  if (!merchRail || !merchPreviousButton || !merchNextButton) return;
+  const atStart = merchRail.scrollLeft <= 2;
+  const atEnd = merchRail.scrollLeft + merchRail.clientWidth >= merchRail.scrollWidth - 2;
+  merchPreviousButton.disabled = mobileMerch.matches || atStart;
+  merchNextButton.disabled = mobileMerch.matches || atEnd;
+};
+
+const merchStep = () => {
+  const firstCard = merchCards[0];
+  if (!firstCard || !merchRail) return 0;
+  const gap = Number.parseFloat(window.getComputedStyle(merchRail.querySelector('.merch-grid')).columnGap) || 0;
+  return firstCard.getBoundingClientRect().width + gap;
+};
+
+const scrollMerch = (direction) => {
+  const distance = merchStep();
+  if (!merchRail || distance <= 0) return;
+  merchRail.scrollBy({ left: direction * distance, behavior: reducedMotion.matches ? 'auto' : 'smooth' });
+};
+
+merchPreviousButton?.addEventListener('click', () => scrollMerch(-1));
+merchNextButton?.addEventListener('click', () => scrollMerch(1));
+merchRail?.addEventListener('scroll', () => {
+  if (merchScrollFrame !== null) return;
+  merchScrollFrame = window.requestAnimationFrame(() => {
+    updateMerchControls();
+    merchScrollFrame = null;
+  });
+}, { passive: true });
+
+const updateMerchPresentation = ({ reset = false } = {}) => {
+  if (reset) mobileMerchExpanded = false;
+  const canExpand = mobileMerch.matches && merchCards.length > 2;
+
+  merchCards.forEach((card, index) => {
+    card.classList.toggle('is-mobile-overflow', canExpand && !mobileMerchExpanded && index >= 2);
+  });
+
+  if (merchMoreButton) {
+    merchMoreButton.hidden = !canExpand;
+    merchMoreButton.setAttribute('aria-expanded', String(mobileMerchExpanded));
+    merchMoreButton.firstElementChild.textContent = mobileMerchExpanded
+      ? '\u0421\u0432\u0435\u0440\u043d\u0443\u0442\u044c'
+      : '\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0435\u0449\u0451';
+    merchMoreButton.lastElementChild.textContent = mobileMerchExpanded ? '\u2191' : '\u2193';
+  }
+
+  if (reset && merchRail) merchRail.scrollLeft = 0;
+  window.requestAnimationFrame(updateMerchControls);
+};
+
+merchMoreButton?.addEventListener('click', () => {
+  mobileMerchExpanded = !mobileMerchExpanded;
+  updateMerchPresentation();
+  if (!mobileMerchExpanded) {
+    merchSection?.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'start' });
+  }
+});
+
+mobileMerch.addEventListener('change', () => updateMerchPresentation({ reset: true }));
+window.addEventListener('resize', updateMerchControls, { passive: true });
+updateMerchPresentation({ reset: true });
+
+const gallerySection = document.querySelector('.gallery');
+const galleryGroups = [...document.querySelectorAll('.gallery-group')];
+const galleryCards = galleryGroups.flatMap((group) => [...group.querySelectorAll('.gallery-card')]);
+const galleryMoreButton = document.querySelector('.gallery-more');
+const mobileGallery = window.matchMedia('(max-width: 800px)');
+let mobileGalleryExpanded = false;
+let galleryResizeFrame = null;
+
+const createGalleryLoopClone = (group) => {
+  const clone = group.cloneNode(true);
+  clone.classList.add('gallery-loop-clone');
+  clone.setAttribute('aria-hidden', 'true');
+  clone.querySelectorAll('a').forEach((link) => link.setAttribute('tabindex', '-1'));
+  return clone;
+};
+
+const syncGalleryRows = () => {
+  document.querySelectorAll('.gallery-loop-clone').forEach((clone) => clone.remove());
+  if (mobileGallery.matches || reducedMotion.matches) return;
+
+  galleryGroups.forEach((group) => {
+    const track = group.parentElement;
+    const groupWidth = group.getBoundingClientRect().width;
+    if (!track || groupWidth <= 1) return;
+
+    track.style.setProperty('--gallery-shift', `${-groupWidth}px`);
+    const groupCount = Math.max(2, Math.ceil((window.innerWidth + groupWidth) / groupWidth));
+    for (let index = 1; index < groupCount; index += 1) {
+      track.append(createGalleryLoopClone(group));
+    }
+  });
+};
+
+const updateGalleryPresentation = ({ reset = false } = {}) => {
+  if (reset) mobileGalleryExpanded = false;
+  const canExpand = mobileGallery.matches && galleryCards.length > 3;
+
+  galleryCards.forEach((card, index) => {
+    card.classList.toggle('is-mobile-overflow', canExpand && !mobileGalleryExpanded && index >= 3);
+  });
+
+  if (!galleryMoreButton) return;
+  galleryMoreButton.hidden = !canExpand;
+  galleryMoreButton.setAttribute('aria-expanded', String(mobileGalleryExpanded));
+  galleryMoreButton.firstElementChild.textContent = mobileGalleryExpanded
+    ? '\u0421\u0432\u0435\u0440\u043d\u0443\u0442\u044c'
+    : '\u041f\u043e\u043a\u0430\u0437\u0430\u0442\u044c \u0435\u0449\u0451';
+  galleryMoreButton.lastElementChild.textContent = mobileGalleryExpanded ? '\u2191' : '\u2193';
+};
+
+galleryMoreButton?.addEventListener('click', () => {
+  mobileGalleryExpanded = !mobileGalleryExpanded;
+  updateGalleryPresentation();
+
+  if (!mobileGalleryExpanded) {
+    gallerySection?.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'start' });
+    return;
+  }
+
+  galleryCards.slice(3).forEach((card, index) => {
+    if (typeof card.animate !== 'function') return;
+    card.animate(
+      reducedMotion.matches
+        ? [{ opacity: 0 }, { opacity: 1 }]
+        : [{ opacity: 0, transform: 'translateY(10px)' }, { opacity: 1, transform: 'translateY(0)' }],
+      {
+        duration: reducedMotion.matches ? 120 : 240,
+        delay: reducedMotion.matches ? 0 : index * 45,
+        easing: 'cubic-bezier(.23,1,.32,1)',
+      },
+    );
+  });
+});
+
+mobileGallery.addEventListener('change', () => {
+  updateGalleryPresentation({ reset: true });
+  syncGalleryRows();
+});
+reducedMotion.addEventListener('change', syncGalleryRows);
+window.addEventListener('resize', () => {
+  if (galleryResizeFrame !== null) window.cancelAnimationFrame(galleryResizeFrame);
+  galleryResizeFrame = window.requestAnimationFrame(() => {
+    syncGalleryRows();
+    galleryResizeFrame = null;
+  });
+}, { passive: true });
+syncGalleryRows();
+updateGalleryPresentation({ reset: true });
+
 const contactForm = document.querySelector('#contact-form');
+const contactPurpose = document.querySelector('#contact-purpose');
+const contactPanels = [...document.querySelectorAll('[data-purpose-panel]')];
+const contactTitle = document.querySelector('[data-contact-title]');
+const contactSubmitLabel = document.querySelector('[data-contact-submit]');
+
+const contactPurposeConfig = {
+  residency: { title: 'Стать резидентом', button: 'Подготовить заявку', subject: 'Заявка резидента' },
+  event: { title: 'Запланировать визит', button: 'Подготовить запись', subject: 'Запись на визит или событие' },
+  merch: { title: 'Заказать мерч', button: 'Подготовить заказ', subject: 'Запрос на мерч' },
+  workshop: { title: 'Предложить программу', button: 'Подготовить предложение', subject: 'Мастер-класс или пленэр' },
+  partnership: { title: 'Предложить партнёрство', button: 'Подготовить предложение', subject: 'Предложение о партнёрстве' },
+  other: { title: 'Задать вопрос', button: 'Подготовить вопрос', subject: 'Вопрос в арт-резиденцию' },
+};
+
+const setContactPurpose = (purpose) => {
+  const config = contactPurposeConfig[purpose];
+  if (contactPurpose && contactPurpose.value !== purpose) contactPurpose.value = purpose;
+
+  contactPanels.forEach((panel) => {
+    const active = panel.dataset.purposePanel === purpose;
+    panel.hidden = !active;
+    panel.disabled = !active;
+    panel.querySelectorAll('[data-required]').forEach((field) => {
+      field.required = active;
+    });
+  });
+
+  if (contactTitle) contactTitle.textContent = config?.title ?? 'Обсудить вопрос';
+  if (contactSubmitLabel) contactSubmitLabel.textContent = config?.button ?? 'Подготовить запрос';
+  const status = contactForm?.querySelector('.form-status');
+  if (status) status.textContent = '';
+};
+
+contactPurpose?.addEventListener('change', () => setContactPurpose(contactPurpose.value));
+
+const contactPrefillRules = [
+  ['.hero-bottom .button', 'residency'],
+  ['.merch-action a', 'merch'],
+  ['.stay-card:not(.stay-card--guests) .stay-card-link', 'residency'],
+  ['.stay-card--guests .stay-card-link', 'event'],
+  ['.audience-card:nth-child(1) > a, .audience-card:nth-child(2) > a', 'residency'],
+  ['.audience-card:nth-child(3) > a', 'partnership'],
+  ['.audience-card:nth-child(4) > a', 'event'],
+  ['.event-cta[href="#contacts"]', 'event'],
+];
+
+contactPrefillRules.forEach(([selector, purpose]) => {
+  document.querySelectorAll(selector).forEach((link) => {
+    link.addEventListener('click', () => setContactPurpose(purpose));
+  });
+});
 
 contactForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
   const data = new FormData(contactForm);
   const status = contactForm.querySelector('.form-status');
+  const purpose = String(data.get('purpose') ?? '');
+  const config = contactPurposeConfig[purpose];
+  const activePanel = contactPanels.find((panel) => panel.dataset.purposePanel === purpose);
+  const purposeLabel = contactPurpose?.selectedOptions[0]?.textContent ?? '';
+  const detailRows = activePanel
+    ? [...activePanel.querySelectorAll('[data-label]')].flatMap((field) => {
+      const value = field instanceof HTMLSelectElement
+        ? field.selectedOptions[0]?.textContent?.trim()
+        : field.value.trim();
+      return value ? [`${field.dataset.label}: ${value}`] : [];
+    })
+    : [];
   const requestText = [
-    'Заявка в арт-резиденцию «Михайловское»',
+    `${config?.subject ?? 'Обращение'} — «Михайловское»`,
     `Имя: ${data.get('name')}`,
     `Email: ${data.get('email')}`,
-    `Формат участия: ${data.get('role')}`,
+    `Цель обращения: ${purposeLabel}`,
+    `Рассылка: ${data.get('newsletter') ? 'да' : 'нет'}`,
     '',
-    String(data.get('message')),
+    ...detailRows,
   ].join('\n');
   const teamEmail = document.body.dataset.contactEmail?.trim();
 
   if (teamEmail) {
-    const subject = encodeURIComponent('Заявка в арт-резиденцию «Михайловское»');
+    const subject = encodeURIComponent(config?.subject ?? 'Обращение в арт-резиденцию «Михайловское»');
     const body = encodeURIComponent(requestText);
     window.location.href = `mailto:${teamEmail}?subject=${subject}&body=${body}`;
     status.textContent = 'Письмо подготовлено в вашем почтовом приложении.';
@@ -423,11 +649,13 @@ contactForm?.addEventListener('submit', async (event) => {
 
   try {
     await navigator.clipboard.writeText(requestText);
-    status.textContent = 'Текст заявки скопирован. Сохраните его до публикации контакта команды.';
+    status.textContent = 'Текст обращения скопирован.';
   } catch {
-    status.textContent = 'Не удалось открыть буфер обмена. Скопируйте данные из заполненной формы вручную.';
+    status.textContent = 'Не удалось скопировать текст. Проверьте заполненные данные и повторите попытку.';
   }
 });
+
+setContactPurpose(contactPurpose?.value ?? '');
 
 const restoration = document.querySelector('[data-restoration]');
 const mobileRestoration = window.matchMedia('(max-width: 800px)');
