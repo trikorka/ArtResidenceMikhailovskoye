@@ -1,7 +1,6 @@
 document.documentElement.classList.add('motion-ready');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
 const preferredContrast = window.matchMedia('(prefers-contrast: more)');
-const preferredColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
 const contrastToggles = [...document.querySelectorAll('[data-contrast-toggle]')];
 const themeToggles = [...document.querySelectorAll('[data-theme-toggle]')];
 const themeImages = [...document.querySelectorAll('[data-light-src][data-dark-src]')];
@@ -90,12 +89,6 @@ themeToggles.forEach((button) => button.addEventListener('click', () => {
   applyTheme(enableDark, true);
 }));
 
-preferredColorScheme.addEventListener('change', (event) => {
-  if (savedTheme) return;
-  if (event.matches && document.documentElement.dataset.contrast === 'high') return;
-  applyTheme(event.matches);
-});
-
 contrastToggles.forEach((button) => button.addEventListener('click', () => {
   const enableContrast = document.documentElement.dataset.contrast !== 'high';
   if (enableContrast) applyTheme(false, true);
@@ -107,12 +100,12 @@ preferredContrast.addEventListener('change', (event) => {
   if (event.matches) applyContrast(true);
   else {
     applyContrast(false);
-    applyTheme(savedTheme ? savedTheme === 'dark' : preferredColorScheme.matches);
+    applyTheme(savedTheme === 'dark');
   }
 });
 
 const initialHighContrast = document.documentElement.dataset.contrast === 'high' || (!savedContrast && preferredContrast.matches);
-const initialDarkTheme = !initialHighContrast && (document.documentElement.dataset.theme === 'dark' || (!savedTheme && preferredColorScheme.matches));
+const initialDarkTheme = !initialHighContrast && (document.documentElement.dataset.theme === 'dark' || savedTheme === 'dark');
 applyTheme(initialDarkTheme);
 applyContrast(initialHighContrast);
 

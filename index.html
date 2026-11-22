@@ -10,11 +10,10 @@
     (() => {
       try {
         const savedTheme = localStorage.getItem('mikhailovskoe-theme');
-        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         const saved = localStorage.getItem('mikhailovskoe-contrast');
         const systemPrefersContrast = window.matchMedia('(prefers-contrast: more)').matches;
         const useHighContrast = saved === 'high' || (!saved && systemPrefersContrast);
-        const useDarkTheme = !useHighContrast && (savedTheme === 'dark' || (!savedTheme && systemPrefersDark));
+        const useDarkTheme = !useHighContrast && savedTheme === 'dark';
         if (useHighContrast) document.documentElement.dataset.contrast = 'high';
         else if (useDarkTheme) document.documentElement.dataset.theme = 'dark';
         document.querySelector('meta[name="theme-color"]').content = useHighContrast ? '#000000' : useDarkTheme ? '#181614' : '#ebe4dc';
@@ -32,7 +31,7 @@
   <link rel="preload" href="./public/assets/manor-restored-color-v2.png" as="image" type="image/png">
   <link rel="stylesheet" href="./styles.css?v=20261117-41">
   <style>.event-more-icon{display:block;width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}</style>
-  <script defer src="./script.js?v=20261117-20"></script>
+  <script defer src="./script.js?v=20261117-21"></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Перейти к содержимому</a>
