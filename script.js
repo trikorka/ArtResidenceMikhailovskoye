@@ -1,5 +1,120 @@
 document.documentElement.classList.add('motion-ready');
 const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+const preferredContrast = window.matchMedia('(prefers-contrast: more)');
+const preferredColorScheme = window.matchMedia('(prefers-color-scheme: dark)');
+const contrastToggles = [...document.querySelectorAll('[data-contrast-toggle]')];
+const themeToggles = [...document.querySelectorAll('[data-theme-toggle]')];
+const themeImages = [...document.querySelectorAll('[data-light-src][data-dark-src]')];
+const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+const CONTRAST_STORAGE_KEY = 'mikhailovskoe-contrast';
+const THEME_STORAGE_KEY = 'mikhailovskoe-theme';
+
+const readSavedContrast = () => {
+  try {
+    return window.localStorage.getItem(CONTRAST_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+let savedContrast = readSavedContrast();
+
+const readSavedTheme = () => {
+  try {
+    return window.localStorage.getItem(THEME_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+};
+
+let savedTheme = readSavedTheme();
+
+const updateThemeColor = () => {
+  if (!themeColorMeta) return;
+  if (document.documentElement.dataset.contrast === 'high') themeColorMeta.content = '#000000';
+  else themeColorMeta.content = document.documentElement.dataset.theme === 'dark' ? '#181614' : '#ebe4dc';
+};
+
+const updateThemeImages = (dark) => {
+  const changes = themeImages.filter((image) => {
+    const source = dark ? image.dataset.darkSrc : image.dataset.lightSrc;
+    return source && image.getAttribute('src') !== source;
+  });
+  if (!changes.length) return;
+  window.dispatchEvent(new CustomEvent('theme-images-will-change', { detail: { dark } }));
+  changes.forEach((image) => {
+    image.setAttribute('src', dark ? image.dataset.darkSrc : image.dataset.lightSrc);
+  });
+};
+
+const applyTheme = (dark, persist = false) => {
+  if (dark) {
+    delete document.documentElement.dataset.contrast;
+    contrastToggles.forEach((button) => button.setAttribute('aria-pressed', 'false'));
+    document.documentElement.dataset.theme = 'dark';
+  } else delete document.documentElement.dataset.theme;
+  themeToggles.forEach((button) => button.setAttribute('aria-pressed', String(dark)));
+  updateThemeImages(dark);
+  updateThemeColor();
+
+  if (!persist) return;
+  savedTheme = dark ? 'dark' : 'light';
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, savedTheme);
+  } catch {
+    // Тема остаётся активной в текущей вкладке, даже если хранилище недоступно.
+  }
+};
+
+const applyContrast = (high, persist = false) => {
+  if (high) {
+    delete document.documentElement.dataset.theme;
+    themeToggles.forEach((button) => button.setAttribute('aria-pressed', 'false'));
+    document.documentElement.dataset.contrast = 'high';
+  } else delete document.documentElement.dataset.contrast;
+  contrastToggles.forEach((button) => button.setAttribute('aria-pressed', String(high)));
+  updateThemeColor();
+
+  if (!persist) return;
+  savedContrast = high ? 'high' : 'normal';
+  try {
+    window.localStorage.setItem(CONTRAST_STORAGE_KEY, savedContrast);
+  } catch {
+    // Тема остаётся активной в текущей вкладке, даже если хранилище недоступно.
+  }
+};
+
+themeToggles.forEach((button) => button.addEventListener('click', () => {
+  const enableDark = document.documentElement.dataset.theme !== 'dark';
+  if (enableDark) applyContrast(false, true);
+  applyTheme(enableDark, true);
+}));
+
+preferredColorScheme.addEventListener('change', (event) => {
+  if (savedTheme) return;
+  if (event.matches && document.documentElement.dataset.contrast === 'high') return;
+  applyTheme(event.matches);
+});
+
+contrastToggles.forEach((button) => button.addEventListener('click', () => {
+  const enableContrast = document.documentElement.dataset.contrast !== 'high';
+  if (enableContrast) applyTheme(false, true);
+  applyContrast(enableContrast, true);
+}));
+
+preferredContrast.addEventListener('change', (event) => {
+  if (savedContrast) return;
+  if (event.matches) applyContrast(true);
+  else {
+    applyContrast(false);
+    applyTheme(savedTheme ? savedTheme === 'dark' : preferredColorScheme.matches);
+  }
+});
+
+const initialHighContrast = document.documentElement.dataset.contrast === 'high' || (!savedContrast && preferredContrast.matches);
+const initialDarkTheme = !initialHighContrast && (document.documentElement.dataset.theme === 'dark' || (!savedTheme && preferredColorScheme.matches));
+applyTheme(initialDarkTheme);
+applyContrast(initialHighContrast);
 
 const scrollToTopButton = document.querySelector('.scroll-to-top');
 if (scrollToTopButton) {
@@ -74,6 +189,7 @@ if ('IntersectionObserver' in window) {
 const menuButton = document.querySelector('.menu-button');
 const mobileMenu = document.querySelector('.mobile-menu');
 const mobileMenuLinks = [...document.querySelectorAll('.mobile-menu a')];
+const mobileMenuFocusable = [...document.querySelectorAll('.mobile-menu a, .mobile-menu button:not([disabled])')];
 
 const setMenuOpen = (open, restoreFocus = true) => {
   menuButton.setAttribute('aria-expanded', String(open));
@@ -93,7 +209,12 @@ menuButton?.addEventListener('click', () => {
   setMenuOpen(menuButton.getAttribute('aria-expanded') !== 'true');
 });
 
-mobileMenuLinks.forEach((link) => link.addEventListener('click', () => setMenuOpen(false, false)));
+mobileMenuLinks.forEach((link) => link.addEventListener('click', () => {
+  const target = link.hash ? document.querySelector(link.hash) : null;
+  const targetHeading = target?.querySelector('h2[tabindex="-1"]');
+  setMenuOpen(false, false);
+  window.requestAnimationFrame(() => targetHeading?.focus({ preventScroll: true }));
+}));
 
 document.addEventListener('keydown', (event) => {
   if (menuButton?.getAttribute('aria-expanded') !== 'true') return;
@@ -105,7 +226,7 @@ document.addEventListener('keydown', (event) => {
   }
 
   if (event.key !== 'Tab') return;
-  const focusable = [menuButton, ...mobileMenuLinks];
+  const focusable = [menuButton, ...mobileMenuFocusable];
   const first = focusable[0];
   const last = focusable[focusable.length - 1];
 
@@ -123,6 +244,8 @@ const cards = [...document.querySelectorAll('.event-card')];
 const eventRail = document.querySelector('.event-rail');
 const eventGrid = document.querySelector('.event-grid');
 const eventsMoreButton = document.querySelector('.events-more');
+const eventsMotionButton = document.querySelector('.events-motion');
+const eventsStatus = document.querySelector('[data-events-status]');
 const mobileEvents = window.matchMedia('(max-width: 800px)');
 const MARQUEE_CYCLE_MS = 60000;
 let mobileEventsExpanded = false;
@@ -138,6 +261,15 @@ let marqueePosition = 0;
 
 const visibleEventCards = () => cards.filter((card) => !card.hidden);
 const hasExpandedEvent = () => visibleEventCards().some((card) => card.querySelector('.event-more')?.getAttribute('aria-expanded') === 'true');
+const updateEventSlideLabels = () => {
+  const visibleCards = visibleEventCards();
+  visibleCards.forEach((card, index) => {
+    const title = card.querySelector('h3')?.textContent?.trim() ?? 'Событие';
+    card.setAttribute('role', 'group');
+    card.setAttribute('aria-roledescription', 'слайд');
+    card.setAttribute('aria-label', `${index + 1} из ${visibleCards.length}: ${title}`);
+  });
+};
 
 const removeEventLoopClones = () => {
   eventGrid?.querySelectorAll('.event-card-clone').forEach((clone) => clone.remove());
@@ -221,7 +353,6 @@ const updateEventPresentation = ({ reset = false } = {}) => {
   const visibleCards = visibleEventCards();
   if (reset) {
     mobileEventsExpanded = false;
-    manualMarqueePause = false;
     if (eventRail) eventRail.scrollLeft = 0;
   }
 
@@ -237,7 +368,12 @@ const updateEventPresentation = ({ reset = false } = {}) => {
   }
 
   const shouldMarquee = !mobileEvents.matches && visibleCards.length > 4;
+  updateEventSlideLabels();
   eventRail?.classList.toggle('is-marquee', shouldMarquee);
+  if (eventsMotionButton) {
+    eventsMotionButton.hidden = !shouldMarquee || reducedMotion.matches;
+    eventsMotionButton.textContent = manualMarqueePause ? 'Запустить движение' : 'Остановить движение';
+  }
   syncEventLoopClones();
   if (!shouldMarquee && eventRail) eventRail.scrollLeft = 0;
   updateMarquee();
@@ -292,7 +428,16 @@ filterButtons.forEach((button) => button.addEventListener('click', () => {
   closeEventDetails();
   updateEventPresentation({ reset: true });
   animateVisibleEvents();
+  if (eventsStatus) eventsStatus.textContent = `Показано событий: ${visibleEventCards().length}.`;
 }));
+
+eventsMotionButton?.addEventListener('click', () => {
+  manualMarqueePause = !manualMarqueePause;
+  updateEventPresentation();
+  if (eventsStatus) eventsStatus.textContent = manualMarqueePause
+    ? 'Автоматическое движение афиши остановлено.'
+    : 'Автоматическое движение афиши запущено.';
+});
 
 document.querySelectorAll('.event-more').forEach((button) => button.addEventListener('click', () => {
   const details = document.getElementById(button.getAttribute('aria-controls'));
@@ -319,6 +464,9 @@ eventsMoreButton?.addEventListener('click', () => {
       );
     });
   }
+  if (eventsStatus) eventsStatus.textContent = mobileEventsExpanded
+    ? `Показаны все события: ${visibleEventCards().length}.`
+    : 'Список событий свёрнут.';
 });
 
 eventRail?.addEventListener('pointerdown', (event) => {
@@ -354,8 +502,9 @@ eventRail?.addEventListener('pointerleave', () => {
   updateMarquee();
 });
 eventRail?.addEventListener('focusin', () => {
+  if (eventRail.classList.contains('is-marquee')) manualMarqueePause = true;
   railInteracting = true;
-  updateMarquee();
+  updateEventPresentation();
 });
 eventRail?.addEventListener('focusout', (event) => {
   if (eventRail.contains(event.relatedTarget)) return;
@@ -390,8 +539,7 @@ if ('IntersectionObserver' in window && eventRail) {
 
 mobileEvents.addEventListener('change', () => updateEventPresentation({ reset: true }));
 reducedMotion.addEventListener('change', () => {
-  syncEventLoopClones();
-  updateMarquee();
+  updateEventPresentation();
 });
 document.addEventListener('visibilitychange', updateMarquee);
 updateEventPresentation({ reset: true });
@@ -402,9 +550,30 @@ const merchCards = [...document.querySelectorAll('.merch-card')];
 const merchPreviousButton = document.querySelector('.merch-prev');
 const merchNextButton = document.querySelector('.merch-next');
 const merchMoreButton = document.querySelector('.merch-more');
+const merchStatus = document.querySelector('[data-merch-status]');
 const mobileMerch = window.matchMedia('(max-width: 800px)');
 let mobileMerchExpanded = false;
 let merchScrollFrame = null;
+let merchAnnounceTimer = null;
+
+merchCards.forEach((card, index) => {
+  const title = card.querySelector('h3')?.textContent?.trim() ?? 'Товар';
+  card.setAttribute('role', 'group');
+  card.setAttribute('aria-roledescription', 'слайд');
+  card.setAttribute('aria-label', `${index + 1} из ${merchCards.length}: ${title}`);
+});
+
+const announceMerchPosition = () => {
+  if (!merchStatus || !merchRail || mobileMerch.matches) return;
+  const step = merchStep();
+  if (step <= 0) return;
+  const first = Math.max(0, Math.min(merchCards.length - 1, Math.round(merchRail.scrollLeft / step)));
+  const count = Math.max(1, Math.min(merchCards.length - first, Math.round(merchRail.clientWidth / step)));
+  const last = first + count;
+  merchStatus.textContent = first + 1 === last
+    ? `Показан товар ${last} из ${merchCards.length}.`
+    : `Показаны товары ${first + 1}–${last} из ${merchCards.length}.`;
+};
 
 const updateMerchControls = () => {
   if (!merchRail || !merchPreviousButton || !merchNextButton) return;
@@ -435,6 +604,11 @@ merchRail?.addEventListener('scroll', () => {
     updateMerchControls();
     merchScrollFrame = null;
   });
+  if (merchAnnounceTimer !== null) window.clearTimeout(merchAnnounceTimer);
+  merchAnnounceTimer = window.setTimeout(() => {
+    announceMerchPosition();
+    merchAnnounceTimer = null;
+  }, 180);
 }, { passive: true });
 
 const updateMerchPresentation = ({ reset = false } = {}) => {
@@ -464,6 +638,9 @@ merchMoreButton?.addEventListener('click', () => {
   if (!mobileMerchExpanded) {
     merchSection?.scrollIntoView({ behavior: reducedMotion.matches ? 'auto' : 'smooth', block: 'start' });
   }
+  if (merchStatus) merchStatus.textContent = mobileMerchExpanded
+    ? `Показаны все товары: ${merchCards.length}.`
+    : 'Список товаров свёрнут до двух позиций.';
 });
 
 mobileMerch.addEventListener('change', () => updateMerchPresentation({ reset: true }));
@@ -474,9 +651,34 @@ const gallerySection = document.querySelector('.gallery');
 const galleryGroups = [...document.querySelectorAll('.gallery-group')];
 const galleryCards = galleryGroups.flatMap((group) => [...group.querySelectorAll('.gallery-card')]);
 const galleryMoreButton = document.querySelector('.gallery-more');
+const galleryMotionButton = document.querySelector('.gallery-motion');
+const galleryStatus = document.querySelector('[data-gallery-status]');
 const mobileGallery = window.matchMedia('(max-width: 800px)');
 let mobileGalleryExpanded = false;
+let galleryPaused = false;
 let galleryResizeFrame = null;
+
+galleryCards.forEach((card, index) => {
+  const title = card.querySelector('figcaption strong')?.textContent?.trim() ?? 'Работа';
+  card.setAttribute('role', 'group');
+  card.setAttribute('aria-roledescription', 'слайд');
+  card.setAttribute('aria-label', `${index + 1} из ${galleryCards.length}: ${title}`);
+});
+
+const updateGalleryMotionControl = () => {
+  if (!galleryMotionButton) return;
+  galleryMotionButton.hidden = mobileGallery.matches || reducedMotion.matches;
+  galleryMotionButton.textContent = galleryPaused ? 'Запустить движение' : 'Остановить движение';
+  gallerySection?.classList.toggle('is-paused', galleryPaused);
+};
+
+const setGalleryPaused = (paused, announce = false) => {
+  galleryPaused = paused;
+  updateGalleryMotionControl();
+  if (announce && galleryStatus) galleryStatus.textContent = paused
+    ? 'Автоматическое движение галереи остановлено.'
+    : 'Автоматическое движение галереи запущено.';
+};
 
 const createGalleryLoopClone = (group) => {
   const clone = group.cloneNode(true);
@@ -542,13 +744,25 @@ galleryMoreButton?.addEventListener('click', () => {
       },
     );
   });
+  if (galleryStatus) galleryStatus.textContent = mobileGalleryExpanded
+    ? `Показаны все работы: ${galleryCards.length}.`
+    : 'Галерея свёрнута до трёх работ.';
+});
+
+galleryMotionButton?.addEventListener('click', () => setGalleryPaused(!galleryPaused, true));
+gallerySection?.querySelector('.gallery-marquee')?.addEventListener('focusin', () => {
+  if (!mobileGallery.matches && !reducedMotion.matches) setGalleryPaused(true);
 });
 
 mobileGallery.addEventListener('change', () => {
   updateGalleryPresentation({ reset: true });
   syncGalleryRows();
+  updateGalleryMotionControl();
 });
-reducedMotion.addEventListener('change', syncGalleryRows);
+reducedMotion.addEventListener('change', () => {
+  syncGalleryRows();
+  updateGalleryMotionControl();
+});
 window.addEventListener('resize', () => {
   if (galleryResizeFrame !== null) window.cancelAnimationFrame(galleryResizeFrame);
   galleryResizeFrame = window.requestAnimationFrame(() => {
@@ -558,12 +772,79 @@ window.addEventListener('resize', () => {
 }, { passive: true });
 syncGalleryRows();
 updateGalleryPresentation({ reset: true });
+updateGalleryMotionControl();
 
 const contactForm = document.querySelector('#contact-form');
 const contactPurpose = document.querySelector('#contact-purpose');
 const contactPanels = [...document.querySelectorAll('[data-purpose-panel]')];
 const contactTitle = document.querySelector('[data-contact-title]');
 const contactSubmitLabel = document.querySelector('[data-contact-submit]');
+const contactErrorSummary = document.querySelector('#contact-form-errors');
+const contactFields = [...(contactForm?.querySelectorAll('input,select,textarea') ?? [])];
+let contactErrorFrame = null;
+let contactValidationAttempted = false;
+
+const contactFieldLabel = (field) => {
+  const label = field.closest('label');
+  if (!label) return 'Поле';
+  const directText = [...label.childNodes]
+    .find((node) => node.nodeType === Node.TEXT_NODE && node.textContent.trim())
+    ?.textContent.trim();
+  return directText || label.querySelector('span')?.textContent?.trim() || 'Поле';
+};
+
+const contactErrorId = (field) => `error-${field.name || field.id || 'field'}`.replace(/[^a-zA-Z0-9_-]/g, '-');
+
+const contactFieldErrorMessage = (field) => {
+  const label = contactFieldLabel(field);
+  if (field.validity.valueMissing) {
+    return field.type === 'checkbox' ? 'Подтвердите согласие на обработку персональных данных.' : `Заполните поле «${label}».`;
+  }
+  if (field.validity.typeMismatch && field.type === 'email') return 'Введите корректный адрес электронной почты.';
+  if (field.validity.rangeUnderflow) return `Укажите значение не меньше ${field.min}.`;
+  return `Проверьте значение поля «${label}».`;
+};
+
+const clearContactFieldError = (field) => {
+  const errorId = contactErrorId(field);
+  field.removeAttribute('aria-invalid');
+  document.getElementById(errorId)?.remove();
+  const describedBy = (field.getAttribute('aria-describedby') ?? '')
+    .split(/\s+/)
+    .filter((id) => id && id !== errorId);
+  if (describedBy.length) field.setAttribute('aria-describedby', describedBy.join(' '));
+  else field.removeAttribute('aria-describedby');
+};
+
+const showContactFieldError = (field) => {
+  const errorId = contactErrorId(field);
+  let error = document.getElementById(errorId);
+  if (!error) {
+    error = document.createElement('span');
+    error.id = errorId;
+    error.className = 'field-error';
+    field.closest('label')?.append(error);
+  }
+  error.textContent = contactFieldErrorMessage(field);
+  field.setAttribute('aria-invalid', 'true');
+  const describedBy = new Set((field.getAttribute('aria-describedby') ?? '').split(/\s+/).filter(Boolean));
+  describedBy.add(errorId);
+  field.setAttribute('aria-describedby', [...describedBy].join(' '));
+};
+
+const updateContactErrorSummary = () => {
+  const invalidFields = contactFields.filter((field) => !field.disabled && !field.validity.valid);
+  if (!contactErrorSummary) return;
+  if (!contactValidationAttempted) {
+    contactErrorSummary.hidden = true;
+    contactErrorSummary.textContent = '';
+    return;
+  }
+  contactErrorSummary.hidden = invalidFields.length === 0;
+  contactErrorSummary.textContent = invalidFields.length
+    ? `Проверьте форму: полей с ошибками — ${invalidFields.length}. Первая ошибка: ${contactFieldErrorMessage(invalidFields[0])}`
+    : '';
+};
 
 const contactPurposeConfig = {
   residency: { title: 'Стать резидентом', button: 'Подготовить заявку', subject: 'Заявка резидента' },
@@ -574,7 +855,7 @@ const contactPurposeConfig = {
   other: { title: 'Задать вопрос', button: 'Подготовить вопрос', subject: 'Вопрос в арт-резиденцию' },
 };
 
-const setContactPurpose = (purpose) => {
+const setContactPurpose = (purpose, announce = false) => {
   const config = contactPurposeConfig[purpose];
   if (contactPurpose && contactPurpose.value !== purpose) contactPurpose.value = purpose;
 
@@ -584,16 +865,18 @@ const setContactPurpose = (purpose) => {
     panel.disabled = !active;
     panel.querySelectorAll('[data-required]').forEach((field) => {
       field.required = active;
+      if (!active) clearContactFieldError(field);
     });
   });
 
   if (contactTitle) contactTitle.textContent = config?.title ?? 'Обсудить вопрос';
   if (contactSubmitLabel) contactSubmitLabel.textContent = config?.button ?? 'Подготовить запрос';
   const status = contactForm?.querySelector('.form-status');
-  if (status) status.textContent = '';
+  if (status) status.textContent = announce && config ? `Форма обновлена: ${config.title}.` : '';
+  updateContactErrorSummary();
 };
 
-contactPurpose?.addEventListener('change', () => setContactPurpose(contactPurpose.value));
+contactPurpose?.addEventListener('change', () => setContactPurpose(contactPurpose.value, true));
 
 const contactPrefillRules = [
   ['.hero-bottom .button', 'residency'],
@@ -608,12 +891,37 @@ const contactPrefillRules = [
 
 contactPrefillRules.forEach(([selector, purpose]) => {
   document.querySelectorAll(selector).forEach((link) => {
-    link.addEventListener('click', () => setContactPurpose(purpose));
+    link.addEventListener('click', () => setContactPurpose(purpose, true));
   });
+});
+
+contactForm?.addEventListener('invalid', (event) => {
+  const field = event.target;
+  if (!(field instanceof HTMLInputElement || field instanceof HTMLSelectElement || field instanceof HTMLTextAreaElement)) return;
+  contactValidationAttempted = true;
+  showContactFieldError(field);
+  if (contactErrorFrame !== null) window.cancelAnimationFrame(contactErrorFrame);
+  contactErrorFrame = window.requestAnimationFrame(() => {
+    updateContactErrorSummary();
+    contactErrorFrame = null;
+  });
+}, true);
+
+contactFields.forEach((field) => {
+  const clearIfValid = () => {
+    if (!field.validity.valid) return;
+    clearContactFieldError(field);
+    updateContactErrorSummary();
+  };
+  field.addEventListener('input', clearIfValid);
+  field.addEventListener('change', clearIfValid);
 });
 
 contactForm?.addEventListener('submit', async (event) => {
   event.preventDefault();
+  contactValidationAttempted = false;
+  contactFields.forEach(clearContactFieldError);
+  updateContactErrorSummary();
   const data = new FormData(contactForm);
   const status = contactForm.querySelector('.form-status');
   const purpose = String(data.get('purpose') ?? '');
@@ -663,8 +971,10 @@ const mobileRestoration = window.matchMedia('(max-width: 800px)');
 if (restoration && !mobileRestoration.matches) {
   const restoredImage = restoration.querySelector('.restoration-after');
   const canvas = restoration.querySelector('.restoration-paint');
+  const themeTransition = restoration.querySelector('.restoration-theme-transition');
   const cursor = restoration.querySelector('.restoration-cursor');
   const context = canvas.getContext('2d', { alpha: true });
+  const themeTransitionContext = themeTransition.getContext('2d', { alpha: true });
   const mask = document.createElement('canvas');
   mask.width = canvas.width;
   mask.height = canvas.height;
@@ -681,6 +991,7 @@ if (restoration && !mobileRestoration.matches) {
   let drawing = false;
   let autoFilling = false;
   let complete = false;
+  let prepared = false;
   let lastPoint = null;
 
   const renderPaint = () => {
@@ -691,6 +1002,28 @@ if (restoration && !mobileRestoration.matches) {
     context.drawImage(mask, 0, 0);
     context.globalCompositeOperation = 'source-over';
   };
+
+  const captureThemeFrame = () => {
+    if (!restoredImage.complete || !restoredImage.naturalWidth) return;
+    themeTransitionContext.clearRect(0, 0, themeTransition.width, themeTransition.height);
+    themeTransitionContext.globalCompositeOperation = 'source-over';
+    themeTransitionContext.drawImage(restoredImage, 0, 0, themeTransition.width, themeTransition.height);
+    if (!complete) {
+      themeTransitionContext.globalCompositeOperation = 'destination-in';
+      themeTransitionContext.drawImage(mask, 0, 0);
+      themeTransitionContext.globalCompositeOperation = 'source-over';
+    }
+    themeTransition.classList.add('is-active');
+    void themeTransition.offsetWidth;
+  };
+
+  const finishThemeTransition = () => {
+    renderPaint();
+    requestAnimationFrame(() => themeTransition.classList.remove('is-active'));
+  };
+
+  window.addEventListener('theme-images-will-change', captureThemeFrame);
+  restoredImage.addEventListener('load', finishThemeTransition);
 
   const finishRestoration = () => {
     if (complete) return;
@@ -978,6 +1311,7 @@ if (restoration && !mobileRestoration.matches) {
     } catch {
       buildingCells.fill(1);
       buildingCellCount = buildingCells.length;
+      prepared = true;
       return;
     }
     const cellWidth = canvas.width / grid.columns;
@@ -994,10 +1328,14 @@ if (restoration && !mobileRestoration.matches) {
         }
       }
     }
+    prepared = true;
   };
 
-  if (restoredImage.complete) prepareRestoration();
-  else restoredImage.addEventListener('load', prepareRestoration, { once: true });
+  const prepareOnce = () => {
+    if (!prepared) prepareRestoration();
+  };
+  if (restoredImage.complete) prepareOnce();
+  else restoredImage.addEventListener('load', prepareOnce, { once: true });
 
   restoration.addEventListener('pointerenter', (event) => {
     if (!finePointer.matches || complete || autoFilling) return;
@@ -1029,4 +1367,306 @@ if (restoration && !mobileRestoration.matches) {
     drawing = false;
     lastPoint = null;
   });
+} else if (restoration) {
+  const restoredImage = restoration.querySelector('.restoration-after');
+  const themeTransition = restoration.querySelector('.restoration-theme-transition');
+  const themeTransitionContext = themeTransition.getContext('2d', { alpha: true });
+
+  window.addEventListener('theme-images-will-change', () => {
+    if (!restoredImage.complete || !restoredImage.naturalWidth) return;
+    themeTransitionContext.clearRect(0, 0, themeTransition.width, themeTransition.height);
+    themeTransitionContext.drawImage(restoredImage, 0, 0, themeTransition.width, themeTransition.height);
+    themeTransition.classList.add('is-active');
+    void themeTransition.offsetWidth;
+  });
+  restoredImage.addEventListener('load', () => {
+    requestAnimationFrame(() => themeTransition.classList.remove('is-active'));
+  });
 }
+
+(() => {
+  const scene = document.querySelector('[data-pull-cord]');
+  if (!scene) return;
+  const grab = scene.querySelector('.pull-cord-grab');
+  const lamp = scene.querySelector('.pull-cord-lamp');
+  const head = scene.querySelector('.pull-cord-head');
+  const shade = scene.querySelector('.pull-cord-shade');
+  const bulb = scene.querySelector('.pull-cord-bulb');
+  const wire = scene.querySelector('.pull-cord-wire path');
+  const rope = scene.querySelector('.pull-cord-rope path');
+  const bead = scene.querySelector('.pull-cord-bead');
+  const light = scene.querySelector('.pull-cord-light');
+  const desktopNav = document.querySelector('.desktop-nav');
+  if (!grab || !lamp || !head || !shade || !bulb || !wire || !rope || !bead || !light || !desktopNav) return;
+
+  const reduced = window.matchMedia('(prefers-reduced-motion: reduce)');
+  const S = (x, stiffness, damping) => ({ x, v: 0, t: x, stiffness, damping });
+  const tune = (spring, stiffness, damping) => {
+    spring.stiffness = stiffness;
+    spring.damping = reduced.matches ? 2 * Math.sqrt(stiffness) : damping;
+  };
+  const step = (spring, delta) => {
+    const acceleration = -spring.stiffness * (spring.x - spring.t) - spring.damping * spring.v;
+    spring.v += acceleration * delta;
+    spring.x += spring.v * delta;
+  };
+  const clampValue = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
+
+  const WIRE_LENGTH = 92;
+  const SHADE_HEIGHT = 54;
+  const CORD_OFFSET_X = 28;
+  const CORD_OFFSET_Y = SHADE_HEIGHT - 3;
+  const POINT_COUNT = 12;
+  const SEGMENT_LENGTH = 8;
+  const CORD_LENGTH = POINT_COUNT * SEGMENT_LENGTH;
+  const CLICK_STRETCH = 20;
+  const MAX_STRETCH = 48;
+
+  const lampAngle = S(0, 46, 3);
+  const lampDrop = S(0, 300, 13);
+  const lightRadius = S(1, 120, 21);
+  const bulbPop = S(1, 420, 13);
+  const ghostX = S(0, 210, 22);
+  const ghostY = S(0, 210, 22);
+  const cordScale = S(1, 300, 17);
+  [
+    [lampAngle, 46, 3], [lampDrop, 300, 13], [lightRadius, 120, 21],
+    [bulbPop, 420, 13], [ghostX, 210, 22], [ghostY, 210, 22], [cordScale, 300, 17],
+  ].forEach(([spring, stiffness, damping]) => tune(spring, stiffness, damping));
+
+  let width = 0;
+  let height = 0;
+  let anchorX = 0;
+  let held = null;
+  let ghost = false;
+  let armed = true;
+  let stretch = 0;
+  let lean = 0;
+  let last = performance.now();
+  let lightOn = document.documentElement.dataset.theme !== 'dark';
+  const timers = [];
+  const points = [];
+
+  const after = (seconds, callback) => timers.push({ remaining: seconds, callback });
+  const anchor = () => {
+    const cosine = Math.cos(lampAngle.x);
+    const sine = Math.sin(lampAngle.x);
+    const y = WIRE_LENGTH + lampDrop.x + CORD_OFFSET_Y;
+    return [anchorX + CORD_OFFSET_X * cosine - y * sine, CORD_OFFSET_X * sine + y * cosine];
+  };
+  const bulbPosition = () => {
+    const cosine = Math.cos(lampAngle.x);
+    const sine = Math.sin(lampAngle.x);
+    const y = WIRE_LENGTH + lampDrop.x + SHADE_HEIGHT + 3;
+    return [anchorX - y * sine, y * cosine];
+  };
+  const measure = () => {
+    width = scene.clientWidth;
+    height = scene.clientHeight;
+    anchorX = Math.max(70, width - 50);
+    if (points.length) return;
+    const [x, y] = anchor();
+    for (let index = 0; index <= POINT_COUNT; index += 1) points.push({ x, y: y + index * SEGMENT_LENGTH, vx: 0, vy: 0 });
+  };
+  measure();
+
+  let controlModeFrame = 0;
+  const updateThemeControlMode = () => {
+    cancelAnimationFrame(controlModeFrame);
+    controlModeFrame = requestAnimationFrame(() => {
+      const desktopLayout = window.matchMedia('(min-width: 801px)').matches;
+      const highContrast = document.documentElement.dataset.contrast === 'high';
+      const sceneBounds = scene.getBoundingClientRect();
+      const navBounds = desktopNav.getBoundingClientRect();
+      const lampLeft = sceneBounds.left + anchorX - shade.offsetWidth / 2 - 4;
+      const overlapsHeader = navBounds.right + 12 > lampLeft;
+      document.documentElement.dataset.themeControl = desktopLayout && !highContrast && !overlapsHeader ? 'lamp' : 'button';
+    });
+  };
+  updateThemeControlMode();
+  window.addEventListener('resize', updateThemeControlMode, { passive: true });
+
+  const syncThemeState = () => {
+    lightOn = document.documentElement.dataset.theme !== 'dark' && document.documentElement.dataset.contrast !== 'high';
+    grab.setAttribute('aria-checked', String(lightOn));
+    scene.classList.toggle('is-light', lightOn);
+    lightRadius.t = lightOn ? 1 : 0;
+  };
+
+  const flipTheme = () => {
+    lightOn = !lightOn;
+    applyContrast(false, true);
+    applyTheme(!lightOn, true);
+    grab.setAttribute('aria-checked', String(lightOn));
+    scene.classList.toggle('is-light', lightOn);
+    bulbPop.x = lightOn ? 1.35 : 0.82;
+    lampDrop.v += 150;
+    lightRadius.t = lightOn ? 1 : 0;
+    if (lightOn) tune(lightRadius, 120, 21);
+    else tune(lightRadius, 170, 27);
+  };
+
+  const pin = () => held ? [held.x, held.y] : ghost ? [ghostX.x, ghostY.x] : null;
+  const pull = () => {
+    if (held || ghost) return;
+    const end = points[POINT_COUNT];
+    const [x, y] = anchor();
+    ghost = true;
+    armed = true;
+    ghostX.x = end.x;
+    ghostY.x = end.y;
+    ghostX.v = end.vx;
+    ghostY.v = end.vy;
+    ghostX.t = x - 24;
+    ghostY.t = y + CORD_LENGTH + 58;
+    after(0.9, () => { ghost = false; });
+  };
+
+  const localPoint = (event) => {
+    const bounds = scene.getBoundingClientRect();
+    return [event.clientX - bounds.left, event.clientY - bounds.top];
+  };
+  grab.addEventListener('pointerdown', (event) => {
+    const [x, y] = localPoint(event);
+    const end = points[POINT_COUNT];
+    held = { id: event.pointerId, x: end.x, y: end.y, offsetX: end.x - x, offsetY: end.y - y, startX: x, startY: y, moved: 0, flipped: false };
+    ghost = false;
+    armed = true;
+    try { grab.setPointerCapture(event.pointerId); } catch {}
+    grab.classList.add('is-held');
+  });
+  grab.addEventListener('pointermove', (event) => {
+    if (!held || event.pointerId !== held.id) return;
+    const [x, y] = localPoint(event);
+    held.x = x + held.offsetX;
+    held.y = y + held.offsetY;
+    held.moved = Math.max(held.moved, Math.hypot(x - held.startX, y - held.startY));
+  });
+  const release = (event) => {
+    if (!held || event.pointerId !== held.id) return;
+    const tapped = held.moved < 5 && !held.flipped && event.type === 'pointerup';
+    held = null;
+    grab.classList.remove('is-held');
+    if (tapped) pull();
+  };
+  grab.addEventListener('pointerup', release);
+  grab.addEventListener('pointercancel', release);
+  grab.addEventListener('click', (event) => { if (!event.detail) pull(); });
+
+  new MutationObserver(() => {
+    syncThemeState();
+    updateThemeControlMode();
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme', 'data-contrast'] });
+  syncThemeState();
+
+  const frame = (now) => {
+    const delta = Math.max(1 / 240, Math.min((now - last) / 1000, 1 / 30));
+    last = now;
+    for (let index = timers.length - 1; index >= 0; index -= 1) {
+      timers[index].remaining -= delta;
+      if (timers[index].remaining <= 0) timers.splice(index, 1)[0].callback();
+    }
+    for (let substep = 0; substep < 4; substep += 1) {
+      const subDelta = delta / 4;
+      [lampAngle, lampDrop, lightRadius, bulbPop, ghostX, ghostY, cordScale].forEach((spring) => step(spring, subDelta));
+    }
+
+    const [anchorPointX, anchorPointY] = anchor();
+    const activePin = pin();
+    const end = points[POINT_COUNT];
+    let pinnedX = 0;
+    let pinnedY = 0;
+    stretch = 0;
+    lean = 0;
+    if (activePin) {
+      const dx = activePin[0] - anchorPointX;
+      const dy = activePin[1] - anchorPointY;
+      const distance = Math.hypot(dx, dy) || 1;
+      const over = Math.max(0, distance - CORD_LENGTH);
+      const give = MAX_STRETCH * (1 - Math.exp(-over / 70));
+      const radius = Math.min(distance, CORD_LENGTH) + give;
+      pinnedX = anchorPointX + dx / distance * radius;
+      pinnedY = anchorPointY + dy / distance * radius;
+      stretch = give;
+      lean = over > 0 ? dx / distance : 0;
+      if (over > 0) {
+        cordScale.x = radius / CORD_LENGTH;
+        cordScale.t = cordScale.x;
+        cordScale.v = 0;
+      }
+      if (armed && give > CLICK_STRETCH) {
+        armed = false;
+        flipTheme();
+        if (held) held.flipped = true;
+        else after(0.12, () => { ghost = false; });
+      }
+    }
+    if (!activePin || !stretch) cordScale.t = 1;
+    const segment = SEGMENT_LENGTH * Math.max(1, cordScale.x);
+    lampDrop.t = stretch * 0.22;
+    lampAngle.t = clampValue(-lean * stretch / MAX_STRETCH * 0.5, -0.3, 0.3);
+
+    const previous = points.map((point) => [point.x, point.y]);
+    for (let index = 1; index <= POINT_COUNT; index += 1) {
+      const point = points[index];
+      const drag = Math.exp(-(index === POINT_COUNT ? 1.1 : 2.4) * delta);
+      point.vy += 2600 * delta;
+      point.vx *= drag;
+      point.vy *= drag;
+      const speed = Math.hypot(point.vx, point.vy);
+      if (speed > 2600) {
+        point.vx *= 2600 / speed;
+        point.vy *= 2600 / speed;
+      }
+      point.x += point.vx * delta;
+      point.y += point.vy * delta;
+    }
+    for (let iteration = 0; iteration < 8; iteration += 1) {
+      points[0].x = anchorPointX;
+      points[0].y = anchorPointY;
+      if (activePin) { end.x = pinnedX; end.y = pinnedY; }
+      for (let index = 0; index < POINT_COUNT; index += 1) {
+        const first = points[index];
+        const second = points[index + 1];
+        const dx = second.x - first.x;
+        const dy = second.y - first.y;
+        const distance = Math.hypot(dx, dy) || 1e-6;
+        const force = (distance - segment) / distance * 0.5;
+        const firstWeight = index === 0 ? 0 : 1;
+        const secondWeight = index + 1 === POINT_COUNT ? (activePin ? 0 : 0.3) : 1;
+        const weight = firstWeight + secondWeight || 1;
+        first.x += dx * force * firstWeight / weight * 2;
+        first.y += dy * force * firstWeight / weight * 2;
+        second.x -= dx * force * secondWeight / weight * 2;
+        second.y -= dy * force * secondWeight / weight * 2;
+      }
+    }
+    points[0].x = anchorPointX;
+    points[0].y = anchorPointY;
+    if (activePin) { end.x = pinnedX; end.y = pinnedY; }
+    for (let index = 1; index <= POINT_COUNT; index += 1) {
+      points[index].vx = (points[index].x - previous[index][0]) / delta;
+      points[index].vy = (points[index].y - previous[index][1]) / delta;
+    }
+
+    let path = `M${points[0].x.toFixed(1)} ${points[0].y.toFixed(1)}`;
+    for (let index = 1; index < POINT_COUNT; index += 1) path += `Q${points[index].x.toFixed(1)} ${points[index].y.toFixed(1)} ${((points[index].x + points[index + 1].x) / 2).toFixed(1)} ${((points[index].y + points[index + 1].y) / 2).toFixed(1)}`;
+    path += `L${end.x.toFixed(1)} ${end.y.toFixed(1)}`;
+    rope.setAttribute('d', path);
+    const angle = Math.atan2(points[POINT_COUNT - 1].x - end.x, end.y - points[POINT_COUNT - 1].y);
+    const wireLength = WIRE_LENGTH + lampDrop.x - 4;
+    wire.setAttribute('d', `M${anchorX.toFixed(1)} -4L${(anchorX - Math.sin(lampAngle.x) * wireLength).toFixed(2)} ${(Math.cos(lampAngle.x) * wireLength).toFixed(2)}`);
+    lamp.style.transform = `translateX(${anchorX.toFixed(2)}px) rotate(${lampAngle.x.toFixed(4)}rad)`;
+    head.style.transform = `translateY(${(WIRE_LENGTH + lampDrop.x).toFixed(2)}px)`;
+    bulb.style.transform = `scale(${bulbPop.x.toFixed(4)})`;
+    bead.style.transform = `translate(${end.x.toFixed(2)}px,${end.y.toFixed(2)}px) rotate(${angle.toFixed(4)}rad)`;
+    grab.style.transform = `translate(${end.x.toFixed(2)}px,${end.y.toFixed(2)}px)`;
+    const [bulbX, bulbY] = bulbPosition();
+    light.style.transform = `translate(${bulbX.toFixed(2)}px,${bulbY.toFixed(2)}px) scale(${Math.max(0.01, lightRadius.x).toFixed(4)})`;
+    light.style.opacity = String(clampValue(lightRadius.x * 0.82, 0, 0.82));
+
+    if (scene.clientWidth !== width || scene.clientHeight !== height) measure();
+    requestAnimationFrame(frame);
+  };
+  requestAnimationFrame(frame);
+})();

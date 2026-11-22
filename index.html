@@ -5,7 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="description" content="Михайловское — арт-резиденция в исторической усадьбе">
   <meta name="theme-color" content="#ebe4dc">
-  <meta name="color-scheme" content="light">
+  <meta name="color-scheme" content="light dark">
+  <script>
+    (() => {
+      try {
+        const savedTheme = localStorage.getItem('mikhailovskoe-theme');
+        const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const saved = localStorage.getItem('mikhailovskoe-contrast');
+        const systemPrefersContrast = window.matchMedia('(prefers-contrast: more)').matches;
+        const useHighContrast = saved === 'high' || (!saved && systemPrefersContrast);
+        const useDarkTheme = !useHighContrast && (savedTheme === 'dark' || (!savedTheme && systemPrefersDark));
+        if (useHighContrast) document.documentElement.dataset.contrast = 'high';
+        else if (useDarkTheme) document.documentElement.dataset.theme = 'dark';
+        document.querySelector('meta[name="theme-color"]').content = useHighContrast ? '#000000' : useDarkTheme ? '#181614' : '#ebe4dc';
+      } catch {}
+    })();
+  </script>
   <link rel="icon" href="./public/assets/location-mark.svg" type="image/svg+xml">
   <meta property="og:type" content="website">
   <meta property="og:locale" content="ru_RU">
@@ -15,32 +30,42 @@
   <link rel="preload" href="./public/assets/onest-variable.ttf" as="font" type="font/ttf" crossorigin>
   <link rel="preload" href="./public/assets/manor-ruined-line-art.png" as="image" type="image/png" fetchpriority="high">
   <link rel="preload" href="./public/assets/manor-restored-color-v2.png" as="image" type="image/png">
-  <link rel="stylesheet" href="./styles.css?v=20261117-25">
+  <link rel="stylesheet" href="./styles.css?v=20261117-41">
   <style>.event-more-icon{display:block;width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}</style>
-  <script defer src="./script.js?v=20261117-7"></script>
+  <script defer src="./script.js?v=20261117-20"></script>
 </head>
 <body>
   <a class="skip-link" href="#main-content">Перейти к содержимому</a>
+  <aside class="pull-cord" data-pull-cord aria-label="Переключатель освещения">
+    <i class="pull-cord-light" aria-hidden="true"></i>
+    <svg class="pull-cord-wire" aria-hidden="true"><path /></svg>
+    <div class="pull-cord-lamp" aria-hidden="true"><div class="pull-cord-head"><i class="pull-cord-shade"></i><i class="pull-cord-cap"></i><i class="pull-cord-bulb"></i></div></div>
+    <svg class="pull-cord-rope" aria-hidden="true"><path /></svg>
+    <i class="pull-cord-bead" aria-hidden="true"></i>
+    <button class="pull-cord-grab" type="button" role="switch" aria-checked="false" aria-label="Потянуть шнур и сменить тему"></button>
+  </aside>
   <header class="hero" id="top">
     <nav class="desktop-nav shell" aria-label="Основная навигация">
       <a class="brand-link" href="#top" aria-label="Михайловское — к началу страницы"><img class="brand-mark" src="./public/assets/partner-hse.svg" alt=""></a>
-      <div class="nav-links">
-        <a href="#about">О резиденции</a><a href="#stay">Проживание</a><a href="#events">События</a><a href="#gallery">Из мастерских</a><a href="#merch">Мерч</a><a href="#contacts">Как приехать</a>
+      <div class="nav-actions">
+        <div class="nav-links"><a href="#about">О резиденции</a><a href="#stay">Проживание</a><a href="#events">События</a><a href="#gallery">Из мастерских</a><a href="#merch">Мерч</a><a href="#contacts">Как приехать</a></div>
+        <div class="appearance-controls"><button class="theme-toggle theme-toggle--desktop" type="button" aria-label="Тёмная тема" aria-pressed="false" data-theme-toggle><span aria-hidden="true">☾</span><span class="theme-toggle-label">Тёмная</span></button><button class="contrast-toggle contrast-toggle--desktop" type="button" aria-label="Высокая контрастность" aria-pressed="false" data-contrast-toggle><span aria-hidden="true">◐</span><span class="contrast-toggle-label">Контраст</span></button></div>
       </div>
     </nav>
     <div class="mobile-nav shell">
       <a class="brand-link" href="#top" aria-label="Михайловское — к началу страницы"><img class="brand-mark" src="./public/assets/partner-hse.svg" alt=""></a>
       <button class="menu-button" type="button" aria-label="Открыть меню" aria-expanded="false"><i></i><i></i><i></i></button>
     </div>
-    <nav class="mobile-menu" aria-label="Мобильная навигация" aria-hidden="true" inert><a href="#about">О резиденции</a><a href="#stay">Проживание</a><a href="#events">События</a><a href="#gallery">Из мастерских</a><a href="#merch">Мерч</a><a href="#contacts">Как приехать</a></nav>
+    <nav class="mobile-menu" aria-label="Мобильная навигация" aria-hidden="true" inert><a href="#about">О резиденции</a><a href="#stay">Проживание</a><a href="#events">События</a><a href="#gallery">Из мастерских</a><a href="#merch">Мерч</a><a href="#contacts">Как приехать</a><div class="mobile-theme-controls"><button class="theme-toggle theme-toggle--mobile" type="button" aria-pressed="false" data-theme-toggle><span aria-hidden="true">☾</span><span>Тёмная тема</span></button><button class="contrast-toggle contrast-toggle--mobile" type="button" aria-pressed="false" data-contrast-toggle><span aria-hidden="true">◐</span><span>Высокая контрастность</span></button></div></nav>
     <div class="hero-art shell">
       <img class="hero-wordmark" src="./public/assets/logo-mark.svg" alt="Михайловское">
       <img class="hero-wordmark-restored" src="./public/assets/logo-mark-solid.svg" alt="" aria-hidden="true">
       <div class="restoration" data-restoration>
         <img class="hero-building restoration-before" src="./public/assets/manor-ruined-line-art.png" alt="Разрушенная усадьба Михайловское, рисунок пером" width="2172" height="724" fetchpriority="high" decoding="async">
         <canvas class="restoration-paint" width="2172" height="724" aria-hidden="true"></canvas>
-        <img class="hero-building restoration-after" src="./public/assets/manor-restored-color-v2.png" alt="Отреставрированная усадьба Михайловское" width="2172" height="724" decoding="async">
-        <img class="hero-building restoration-light" src="./public/assets/manor-restored-color-v2.png" alt="" aria-hidden="true" decoding="async">
+        <canvas class="restoration-theme-transition" width="2172" height="724" aria-hidden="true"></canvas>
+        <img class="hero-building restoration-after" src="./public/assets/manor-restored-color-v2.png" data-light-src="./public/assets/manor-restored-color-v2.png" data-dark-src="./public/assets/manor-restored-evening.png" alt="Отреставрированная усадьба Михайловское" width="2172" height="724" decoding="async">
+        <img class="hero-building restoration-light" src="./public/assets/manor-restored-color-v2.png" data-light-src="./public/assets/manor-restored-color-v2.png" data-dark-src="./public/assets/manor-restored-evening.png" alt="" aria-hidden="true" decoding="async">
         <div class="restoration-cursor" aria-hidden="true"></div>
       </div>
     </div>
@@ -64,18 +89,18 @@
   </header>
 
   <main id="main-content" tabindex="-1">
-    <section class="about section shell" id="about">
+    <section class="about section shell" id="about" aria-labelledby="about-title">
       <p class="eyebrow mobile-only">О РЕЗИДЕНЦИИ</p>
       <div class="about-grid">
         <img src="./public/assets/event-03.jpg" alt="Выставка в исторической усадьбе" loading="lazy" decoding="async" width="1264" height="848">
-        <div class="about-copy"><h2>Историческая усадьба.<br>Живое искусство.</h2><p>«Михайловское» соединяет историческую усадьбу и современную художественную практику. Здесь художники работают над проектами, исследуют место и создают новые произведения.</p><p>Для гостей проходят выставки, мастер-классы, пленэры и встречи с авторами.</p></div>
+        <div class="about-copy"><h2 id="about-title" tabindex="-1">Историческая усадьба.<br>Живое искусство.</h2><p>«Михайловское» соединяет историческую усадьбу и современную художественную практику. Здесь художники работают над проектами, исследуют место и создают новые произведения.</p><p>Для гостей проходят выставки, мастер-классы, пленэры и встречи с авторами.</p></div>
       </div>
       <div class="about-topics"><span>Художественная практика</span><span>Усадьба как источник исследования</span><span>Выставки и открытые мастерские</span></div>
     </section>
 
-    <section class="audience section" id="audience">
+    <section class="audience section" id="audience" aria-labelledby="audience-title">
       <div class="shell">
-        <h2>Место для каждого</h2>
+        <h2 id="audience-title" tabindex="-1">Место для каждого</h2>
         <div class="audience-grid">
           <article class="audience-card featured"><div class="card-meta"><strong>01</strong><span>Собственная практика</span></div><h3>Художники</h3><p>Работать над проектом, исследовать место и представить результат.</p><a href="#contacts"><span>Обсудить участие</span><span aria-hidden="true">↗</span></a></article>
           <article class="audience-card"><div class="card-meta"><strong>02</strong><span>Обучение</span></div><h3>Студенты</h3><p>Увидеть работу мастерских и познакомиться с практикой резидентов.</p><a href="#contacts"><span>Задать вопрос</span><span aria-hidden="true">↗</span></a></article>
@@ -85,8 +110,8 @@
       </div>
     </section>
 
-    <section class="stay section shell" id="stay">
-      <div class="section-heading"><h2>Проживание</h2></div>
+    <section class="stay section shell" id="stay" aria-labelledby="stay-title">
+      <div class="section-heading"><h2 id="stay-title" tabindex="-1">Проживание</h2></div>
       <div class="stay-cards">
         <article class="stay-card">
           <img src="./public/assets/event-02.jpg" alt="Художница работает в мастерской резиденции" loading="lazy" decoding="async" width="896" height="1200">
@@ -121,13 +146,13 @@
       </div>
     </section>
 
-    <section class="merch section" id="merch">
+    <section class="merch section" id="merch" aria-labelledby="merch-title">
       <div class="shell">
         <div class="merch-header">
-          <div class="section-heading"><h2>Мерч резиденции</h2></div>
-          <div class="merch-controls" aria-label="Управление слайдером мерча"><button class="merch-prev" type="button" aria-label="Предыдущие товары">←</button><button class="merch-next" type="button" aria-label="Следующие товары">→</button></div>
+          <div class="section-heading"><h2 id="merch-title" tabindex="-1">Мерч резиденции</h2></div>
+          <div class="merch-controls" aria-label="Управление слайдером мерча"><button class="merch-prev" type="button" aria-label="Предыдущие товары" aria-controls="merch-carousel">←</button><button class="merch-next" type="button" aria-label="Следующие товары" aria-controls="merch-carousel">→</button></div>
         </div>
-        <div class="merch-rail" tabindex="0" aria-label="Товары арт-резиденции">
+        <div class="merch-rail" id="merch-carousel" tabindex="0" role="group" aria-roledescription="карусель" aria-labelledby="merch-title" aria-live="polite" aria-atomic="false">
           <div class="merch-grid">
             <article class="merch-card">
               <div class="merch-placeholder" role="img" aria-label="Здесь будет фотография футболки"><span>01</span><small>Фото товара</small></div>
@@ -151,16 +176,18 @@
             </article>
           </div>
         </div>
+        <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-merch-status></p>
         <button class="merch-more" type="button" hidden aria-expanded="false"><span>Показать ещё</span><span aria-hidden="true">↓</span></button>
         <div class="merch-action"><a class="button button-light" href="#contacts"><span>Узнать о выпуске</span><span aria-hidden="true">↗</span></a></div>
       </div>
     </section>
 
-    <section class="events section" id="events">
+    <section class="events section" id="events" aria-labelledby="events-title">
       <div class="shell">
-        <div class="section-heading events-heading"><h2>Афиша</h2></div>
+        <div class="events-heading-row"><div class="section-heading events-heading"><h2 id="events-title" tabindex="-1">Афиша</h2></div><button class="motion-toggle events-motion" type="button" aria-controls="events-carousel" hidden>Остановить движение</button></div>
         <div class="filters" role="group" aria-label="Фильтр афиши"><button class="active" data-filter="all" aria-pressed="true">Все события</button><button data-filter="exhibition" aria-pressed="false">Выставки</button><button data-filter="workshop" aria-pressed="false">Мастерские</button><button data-filter="pleinair" aria-pressed="false">Пленэры</button><button data-filter="program" aria-pressed="false">Программы</button><button data-filter="fair" aria-pressed="false">Ярмарки</button></div>
-        <div class="event-rail" tabindex="0" aria-label="Лента мероприятий">
+        <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-events-status></p>
+        <div class="event-rail" id="events-carousel" tabindex="0" role="group" aria-roledescription="карусель" aria-labelledby="events-title" aria-live="off">
         <div class="event-grid">
           <article class="event-card" data-category="program"><img src="./public/assets/event-route-map.png" alt="Карта маршрута по усадьбам и природному заповеднику" loading="lazy" width="1536" height="1024"><div class="event-meta"><span>Экскурсия</span><span>Троицк · по записи</span></div><h3>Большой усадебный маршрут</h3><p class="event-summary">Близлежащие усадьбы и природный заповедник.</p><time datetime="2027-05-24">24 мая 2027</time><a class="event-cta" href="#contacts">Записаться ↗</a><button class="event-more" type="button" aria-expanded="false" aria-controls="event-route-details"><span>Подробнее</span><svg class="event-more-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button><div class="event-details" id="event-route-details" hidden><p>Архитектура, история места и остановки для наблюдения за ландшафтом. Автобусная и пешая части, старт в Михайловском.</p></div></article>
           <article class="event-card" data-category="workshop"><img src="./public/assets/event-01.jpg" alt="Работа с глиной в мастерской" loading="lazy" width="1264" height="848"><div class="event-meta"><span>Мастер-класс</span><span>Троицк · по записи</span></div><h3>Практика с художником</h3><p class="event-summary">Небольшие группы и работа с выбранным материалом.</p><time datetime="2027-06-07">7 июня 2027</time><a class="event-cta" href="#contacts">Записаться ↗</a><button class="event-more" type="button" aria-expanded="false" aria-controls="event-workshop-details"><span>Подробнее</span><svg class="event-more-icon" aria-hidden="true" viewBox="0 0 24 24"><path d="m6 9 6 6 6-6"/></svg></button><div class="event-details" id="event-workshop-details" hidden><p>Предварительная запись в группы к художникам резиденции. Тема и материалы публикуются вместе с датой встречи.</p></div></article>
@@ -175,35 +202,36 @@
       </div>
     </section>
 
-    <section class="gallery section" id="gallery">
-      <div class="shell"><div class="section-heading"><h2>Из мастерских</h2></div></div>
-      <div class="gallery-marquee" aria-label="Работы из мастерских резиденции">
+    <section class="gallery section" id="gallery" aria-labelledby="gallery-title">
+      <div class="shell gallery-heading-row"><div class="section-heading"><h2 id="gallery-title" tabindex="-1">Из мастерских</h2></div><button class="motion-toggle gallery-motion" type="button" aria-controls="gallery-carousel">Остановить движение</button></div>
+      <div class="gallery-marquee" id="gallery-carousel" role="group" aria-roledescription="карусель" aria-labelledby="gallery-title">
         <div class="gallery-row">
           <div class="gallery-track">
             <div class="gallery-group">
-              <figure class="gallery-card gallery-card--wide"><a href="./public/assets/gallery-ceramics.jpg" target="_blank" rel="noopener"><img src="./public/assets/gallery-ceramics.jpg" alt="Керамические работы из мастерской" loading="lazy" width="650" height="488"></a><figcaption><span><strong>Керамика</strong><small>Автор уточняется</small></span><a href="./public/assets/gallery-ceramics.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: керамика">Открыть ↗</a></figcaption></figure>
-              <figure class="gallery-card gallery-card--compact"><a href="./public/assets/gallery-painting.jpg" target="_blank" rel="noopener"><img src="./public/assets/gallery-painting.jpg" alt="Живописная работа из мастерской" loading="lazy" width="650" height="488"></a><figcaption><span><strong>Живопись</strong><small>Автор уточняется</small></span><a href="./public/assets/gallery-painting.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: живопись">Открыть ↗</a></figcaption></figure>
-              <figure class="gallery-card gallery-card--medium"><a href="./public/assets/event-01.jpg" target="_blank" rel="noopener"><img src="./public/assets/event-01.jpg" alt="Работа с глиной в мастерской" loading="lazy" width="1264" height="848"></a><figcaption><span><strong>Работа с глиной</strong><small>Автор уточняется</small></span><a href="./public/assets/event-01.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: работа с глиной">Открыть ↗</a></figcaption></figure>
-              <figure class="gallery-card gallery-card--narrow"><a href="./public/assets/portrait-mark.jpg" target="_blank" rel="noopener"><img src="./public/assets/portrait-mark.jpg" alt="Графическая работа" loading="lazy" width="650" height="356"></a><figcaption><span><strong>Графика</strong><small>Автор уточняется</small></span><a href="./public/assets/portrait-mark.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: графика">Открыть ↗</a></figcaption></figure>
+              <figure class="gallery-card gallery-card--wide"><a href="./public/assets/gallery-ceramics.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: Керамика, автор уточняется"><img src="./public/assets/gallery-ceramics.jpg" alt="" loading="lazy" width="650" height="488"><figcaption><span><strong>Керамика</strong><small>Автор уточняется</small></span><span class="gallery-open" aria-hidden="true">Открыть ↗</span></figcaption></a></figure>
+              <figure class="gallery-card gallery-card--compact"><a href="./public/assets/gallery-painting.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: Живопись, автор уточняется"><img src="./public/assets/gallery-painting.jpg" alt="" loading="lazy" width="650" height="488"><figcaption><span><strong>Живопись</strong><small>Автор уточняется</small></span><span class="gallery-open" aria-hidden="true">Открыть ↗</span></figcaption></a></figure>
+              <figure class="gallery-card gallery-card--medium"><a href="./public/assets/event-01.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: Работа с глиной, автор уточняется"><img src="./public/assets/event-01.jpg" alt="" loading="lazy" width="1264" height="848"><figcaption><span><strong>Работа с глиной</strong><small>Автор уточняется</small></span><span class="gallery-open" aria-hidden="true">Открыть ↗</span></figcaption></a></figure>
+              <figure class="gallery-card gallery-card--narrow"><a href="./public/assets/portrait-mark.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: Графика, автор уточняется"><img src="./public/assets/portrait-mark.jpg" alt="" loading="lazy" width="650" height="356"><figcaption><span><strong>Графика</strong><small>Автор уточняется</small></span><span class="gallery-open" aria-hidden="true">Открыть ↗</span></figcaption></a></figure>
             </div>
           </div>
         </div>
         <div class="gallery-row gallery-row--reverse">
           <div class="gallery-track">
             <div class="gallery-group">
-              <figure class="gallery-card gallery-card--narrow"><a href="./public/assets/about-interior.jpg" target="_blank" rel="noopener"><img src="./public/assets/about-interior.jpg" alt="Светлая мастерская для занятий" loading="lazy" width="848" height="1131"></a><figcaption><span><strong>Мастерская</strong><small>Автор уточняется</small></span><a href="./public/assets/about-interior.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: мастерская">Открыть ↗</a></figcaption></figure>
-              <figure class="gallery-card gallery-card--wide"><a href="./public/assets/gallery-graphics.jpg" target="_blank" rel="noopener"><img src="./public/assets/gallery-graphics.jpg" alt="Серия графических работ" loading="lazy" width="650" height="356"></a><figcaption><span><strong>Серия работ</strong><small>Автор уточняется</small></span><a href="./public/assets/gallery-graphics.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: серия работ">Открыть ↗</a></figcaption></figure>
-              <figure class="gallery-card gallery-card--compact"><a href="./public/assets/event-03.jpg" target="_blank" rel="noopener"><img src="./public/assets/event-03.jpg" alt="Работы в выставочном пространстве" loading="lazy" width="1264" height="848"></a><figcaption><span><strong>Экспозиция</strong><small>Автор уточняется</small></span><a href="./public/assets/event-03.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: экспозиция">Открыть ↗</a></figcaption></figure>
-              <figure class="gallery-card gallery-card--medium"><a href="./public/assets/event-02.jpg" target="_blank" rel="noopener"><img src="./public/assets/event-02.jpg" alt="Художница за работой в мастерской" loading="lazy" width="896" height="1200"></a><figcaption><span><strong>Творческий процесс</strong><small>Автор уточняется</small></span><a href="./public/assets/event-02.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: творческий процесс">Открыть ↗</a></figcaption></figure>
+              <figure class="gallery-card gallery-card--narrow"><a href="./public/assets/about-interior.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: Мастерская, автор уточняется"><img src="./public/assets/about-interior.jpg" alt="" loading="lazy" width="848" height="1131"><figcaption><span><strong>Мастерская</strong><small>Автор уточняется</small></span><span class="gallery-open" aria-hidden="true">Открыть ↗</span></figcaption></a></figure>
+              <figure class="gallery-card gallery-card--wide"><a href="./public/assets/gallery-graphics.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: Серия работ, автор уточняется"><img src="./public/assets/gallery-graphics.jpg" alt="" loading="lazy" width="650" height="356"><figcaption><span><strong>Серия работ</strong><small>Автор уточняется</small></span><span class="gallery-open" aria-hidden="true">Открыть ↗</span></figcaption></a></figure>
+              <figure class="gallery-card gallery-card--compact"><a href="./public/assets/event-03.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: Экспозиция, автор уточняется"><img src="./public/assets/event-03.jpg" alt="" loading="lazy" width="1264" height="848"><figcaption><span><strong>Экспозиция</strong><small>Автор уточняется</small></span><span class="gallery-open" aria-hidden="true">Открыть ↗</span></figcaption></a></figure>
+              <figure class="gallery-card gallery-card--medium"><a href="./public/assets/event-02.jpg" target="_blank" rel="noopener" aria-label="Открыть изображение: Творческий процесс, автор уточняется"><img src="./public/assets/event-02.jpg" alt="" loading="lazy" width="896" height="1200"><figcaption><span><strong>Творческий процесс</strong><small>Автор уточняется</small></span><span class="gallery-open" aria-hidden="true">Открыть ↗</span></figcaption></a></figure>
             </div>
           </div>
         </div>
       </div>
+      <p class="sr-only" role="status" aria-live="polite" aria-atomic="true" data-gallery-status></p>
       <div class="shell"><button class="gallery-more" type="button" hidden aria-expanded="false"><span>Показать ещё</span><span aria-hidden="true">↓</span></button></div>
     </section>
 
-    <section class="voices section shell" id="voices">
-      <div class="voices-heading"><h2>Что даёт резиденция</h2></div>
+    <section class="voices section shell" id="voices" aria-labelledby="voices-title">
+      <div class="voices-heading"><h2 id="voices-title" tabindex="-1">Что даёт резиденция</h2></div>
       <div class="voices-grid">
         <figure class="voices-image"><img src="./public/assets/residence-interior.jpg" alt="Интерьер деревянного дома для гостей резиденции" loading="lazy" decoding="async" width="1200" height="896"></figure>
         <div class="voice-benefits">
@@ -215,9 +243,9 @@
       </div>
     </section>
 
-    <section class="contacts section" id="contacts">
+    <section class="contacts section" id="contacts" aria-labelledby="contacts-title">
       <div class="shell">
-        <div class="section-heading"><h2>Планируйте приезд</h2></div>
+        <div class="section-heading"><h2 id="contacts-title" tabindex="-1">Планируйте приезд</h2></div>
         <div class="contacts-grid">
           <div class="contact-map">
             <div class="contact-map-frame"><iframe src="https://yandex.ru/map-widget/v1/?ll=37.173611%2C55.412222&amp;mode=search&amp;text=%D0%A3%D1%81%D0%B0%D0%B4%D1%8C%D0%B1%D0%B0%20%D0%9C%D0%B8%D1%85%D0%B0%D0%B9%D0%BB%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B5%2C%20%D0%9C%D0%BE%D1%81%D0%BA%D0%B2%D0%B0%2C%20%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B0%D0%BB%20%E2%84%96%2098%2C%206%2C%20%D1%81%D1%82%D1%80.%201&amp;z=17" title="Усадьба Михайловское, квартал № 98, 6, строение 1 — на Яндекс Картах" loading="lazy" allowfullscreen referrerpolicy="no-referrer-when-downgrade"></iframe></div>
@@ -231,8 +259,8 @@
               <a class="contact-map-link" href="https://yandex.ru/maps/?ll=37.173611%2C55.412222&amp;mode=search&amp;text=%D0%A3%D1%81%D0%B0%D0%B4%D1%8C%D0%B1%D0%B0%20%D0%9C%D0%B8%D1%85%D0%B0%D0%B9%D0%BB%D0%BE%D0%B2%D1%81%D0%BA%D0%BE%D0%B5%2C%20%D0%9C%D0%BE%D1%81%D0%BA%D0%B2%D0%B0%2C%20%D0%BA%D0%B2%D0%B0%D1%80%D1%82%D0%B0%D0%BB%20%E2%84%96%2098%2C%206%2C%20%D1%81%D1%82%D1%80.%201&amp;z=17" target="_blank" rel="noopener">Открыть в Яндекс Картах <span aria-hidden="true">↗</span></a>
             </div>
           </div>
-          <form class="contact-form" id="contact-form">
-            <h3 data-contact-title>Обсудить вопрос</h3>
+          <form class="contact-form" id="contact-form" aria-labelledby="contact-form-title">
+            <h3 id="contact-form-title" data-contact-title>Обсудить вопрос</h3>
             <label class="contact-purpose">Цель обращения<select name="purpose" id="contact-purpose" required><option value="">Выберите цель</option><option value="residency">Стать резидентом</option><option value="event">Посетить событие или приехать гостем</option><option value="merch">Заказать мерч</option><option value="workshop">Провести мастер-класс или пленэр</option><option value="partnership">Предложить партнёрство</option><option value="other">Другой вопрос</option></select></label>
             <label>Имя<input name="name" autocomplete="name" required data-label="Имя"></label>
             <label>Email для ответа<input name="email" type="email" autocomplete="email" required data-label="Email"></label>
@@ -253,6 +281,7 @@
               <label class="contact-consent"><input name="personal_data_consent" type="checkbox" required><span>Я согласен на <a href="./personal-data-consent.html">обработку персональных данных</a></span></label>
               <label class="contact-consent"><input name="newsletter" type="checkbox"><span>Получать новости резиденции и анонсы событий</span></label>
             </div>
+            <p class="form-errors" id="contact-form-errors" role="alert" hidden></p>
             <button class="button button-filled" type="submit"><span data-contact-submit>Подготовить запрос</span><span aria-hidden="true">↗</span></button>
             <p class="form-hint">После заполнения вы получите готовый текст обращения</p>
             <p class="form-status" role="status" aria-live="polite"></p>
