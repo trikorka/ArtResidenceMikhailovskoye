@@ -298,3 +298,11 @@ html[data-contrast="high"] .pull-cord{opacity:0;visibility:hidden;pointer-events
   :is(.theme-toggle,.contrast-toggle)[aria-pressed=true],.filters button.active{outline:3px solid Highlight;outline-offset:2px}
   :is(.brand-mark,.hero-wordmark,.hero-wordmark-restored,.footer-brand img){filter:none!important}
 }
+
+.merch-card{overflow:hidden}
+.merch-photo{display:block;width:100%;max-width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;object-position:center;background:var(--paper);flex:0 0 auto}
+.merch-photo--wide{object-position:62% center}
+
+@media(max-width:767px){
+  .merch-photo{width:100%;height:240px;aspect-ratio:auto}
+}
